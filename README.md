@@ -2,7 +2,7 @@
 
 Starfall Legion is a large-scale 16-bit browser space battle: one pilot inside
 two autonomous fleets, three lives, hundreds of ships, fighter dogfights,
-merchant convoys, artillery fortresses, rail fire, fog of war, squad recalls
+merchant convoys, artillery fortresses, rail fire, full battlefield visibility, squad recalls
 and a spectator camera.
 
 The artillery cruiser now reads as a true capital ship: a broader textured
@@ -51,7 +51,7 @@ The hosted paid edition now pits **ChatGPT (GPT-5.6 Terra), blue**, against
 local admirals, with no provider connection or code required. Squadron markers
 are compact green dots on the minimap and sector map.
 
-Every battle is now a chess match between two admirals played out by 456
+Every battle is now a chess match between two admirals played out by 396
 ships. Each side has a command ship, a broad flagship with eight light mounts
 and a spinal cannon that fires three-round bursts, guarded by an elite escort
 of ten double-shot ships. The game ends the moment a command ship dies.
@@ -87,7 +87,7 @@ dist/
   index.html          Browser entry point
   simulation.js       Deterministic 30 Hz battle engine, command ships and admirals' clocks
   grid.js             The 14 x 14 strategic grid
-  board.js            Pieces, fog, ghosts, legal moves and a text board
+  board.js            Pieces, visibility, legal moves and a text board
   game.js             Canvas renderer, controls, HUD, camera
   arcade.js           Free-play session and local fleet decisions
   render-timing.js    Display interpolation and frame metering
@@ -120,7 +120,7 @@ public without publishing customer access or operational infrastructure.
 
 OpenRouter- and OpenAI-based experimenters are welcome to wire in their own
 fleet commanders. Start with [`AGENTS.md`](AGENTS.md): it documents the local
-decision seam, legal-order boundary, fog-of-war contract, and the rule that API
+decision seam, legal-order boundary, full-visibility contract, and the rule that API
 keys and model calls must remain behind a server you control. The checked-in
 free adapter stays local and deterministic, so cloning this repository never
 spends tokens or contacts a model provider.
@@ -134,7 +134,7 @@ npm test
 ## Contributing
 
 Issues and pull requests are welcome. Please keep changes deterministic,
-preserve fog-of-war boundaries, and include a focused test for gameplay rule
+preserve full battlefield visibility, and include a focused test for gameplay rule
 changes. Agent integrations should follow [`AGENTS.md`](AGENTS.md). Never add
 credentials, access codes, paid-session data, or proprietary service
 configuration.
@@ -147,3 +147,5 @@ effects and music are CC0; exact sources and transformations are documented in
 [`dist/assets/audio/CREDITS.txt`](dist/assets/audio/CREDITS.txt).
 
 Created by [Prairie Labs](https://prairielabs.ai).
+
+The fleet-charge update halves cavalry to 30 ships per side, tightens squadron cohesion, and opens with a five-second flight from the full fleet into the moving pilot. Hosted model radio uses the arcade font and direct rival-addressed orders; the free edition continues to use local commanders. Existing saved fleets retain their ships; the smaller cavalry roster applies to fresh battles.

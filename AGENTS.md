@@ -18,8 +18,7 @@ rather than pause or corrupt the battle.
   records, customer data, or private Prairie Labs / GenSim configuration.
 - Never call a model provider directly from browser code. Put OpenRouter,
   OpenAI, or another provider behind a server-side adapter you control.
-- Preserve fog of war. A model must not receive enemy state the commanding side
-  cannot currently sense.
+- Preserve complete battlefield visibility for both sides and their commanders.
 - Validate returned orders against the snapshot's legal choices. Model text is
   untrusted input, not authority over the world state.
 - Preserve deterministic simulation behavior and the fixed-step boundary.

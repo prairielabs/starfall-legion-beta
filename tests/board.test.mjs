@@ -78,10 +78,10 @@ test('the simulation spawns only kinds the board knows', () => {
  assert.deepEqual([...new Set(battle.ships.map(s => s.kind))].sort(), ['artillery', 'cargo', 'cavalry', 'command', 'escort', 'fighter']);
 });
 
-test('the full roster is on the board: 30 pieces covering all 456 ships', () => {
+test('the full roster is on the board: 30 pieces covering all 396 ships', () => {
  const battle = fresh();
  const all = pieces(battle);
- assert.equal(battle.ships.length, 456);
+ assert.equal(battle.ships.length, 396);
  assert.equal(all.length, 30);
  const count = kind => all.filter(p => p.kind === kind).length;
  assert.equal(count('fighter'), 8);
@@ -93,7 +93,7 @@ test('the full roster is on the board: 30 pieces covering all 456 ships', () => 
  assert.equal(all.filter(p => p.side === 0).length, 15);
  assert.equal(all.filter(p => p.side === 1).length, 15);
  const covered = new Set(all.flatMap(p => battle.members(p.id).map(s => s.id)));
- assert.equal(covered.size, 456);
+ assert.equal(covered.size, 396);
  assert.ok(battle.ships.every(s => covered.has(s.id)));
  // Exactly one piece carries the human pilot.
  assert.equal(all.filter(p => p.player).length, 1);
@@ -238,7 +238,7 @@ test('the group follows its centre toward the ordered square', () => {
   `centre of gravity closed on the square: ${Math.round(startDistance)} -> ${Math.round(endDistance)}`);
 });
 
-test('the board view inherits the existing fog', () => {
+test('both sides see the complete battlefield', () => {
  const battle = fresh();
  const view = boardView(battle, 0);
  assert.equal(view.version, 2);
@@ -251,7 +251,7 @@ test('the board view inherits the existing fog', () => {
  for (const piece of view.enemy) {
   assert.ok(battle.members(piece.id).some(s => visible.has(s.id)));
  }
- assert.ok(view.enemy.length < battle.formations.filter(f => f.side === 1).length);
+ assert.equal(view.enemy.length,15);
 });
 
 test('the rendered board shows all thirty pieces with the right case', () => {
@@ -275,7 +275,7 @@ test('the rendered board shows all thirty pieces with the right case', () => {
  // Fogged render for blue omits enemy pieces out of contact.
  const fogged = render(battle, 0);
  const foggedLower = (fogged.split('\n').slice(1, 15).join('').match(/[fsacmk]/g) || []).length;
- assert.ok(foggedLower < lower || lower === 0);
+ assert.equal(foggedLower,lower);
  // The roster is one line per piece.
  assert.equal(roster(battle).length, 30);
  assert.equal(roster(battle, 1).length, 15);

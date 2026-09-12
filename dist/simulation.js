@@ -62,7 +62,7 @@ function intercept(s,t,speed){const dx=t.x-s.x,dy=t.y-s.y,vx=t.vx||0,vy=t.vy||0,
 function figureEight(p,s,time,scale=1){const t=time*.58+s.phase,offset=s.slot*2.39996;return{x:p.x+Math.sin(t)*250*scale+Math.cos(offset)*38,y:p.y+Math.sin(2*t)*135*scale+Math.sin(offset)*35};}
 export class Battle{
  constructor(seed=1,{autopilot=false,legacyRoster=false}={}){
-  this.version=27;this.playerCruising=!autopilot;this.launchQueue=[];this.chargeAt=null;this.seed=seed>>>0;this.initialSeed=this.seed;this.time=0;this.tick=0;this.ships=[];this.formations=[];this.bolts=[];this.rockets=[];this.events=[];this.lives=3;this.score=0;this.kills=0;this.hits=0;this.shots=0;this.serial=0;this.projectileSerial=0;this.result=null;this.respawn=0;this.rocketCooldown=0;this.phase='opening';this.autopilot=autopilot;this.admirals=[0,1].map(side=>Battle.freshAdmiral(side));this.inference={real:0,fixture:0,fallback:0,status:'standing orders'};this.contacts=[[],[]];this.lastDamage=0;
+  this.version=28;this.playerCruising=!autopilot;this.launchQueue=[];this.chargeAt=null;this.seed=seed>>>0;this.initialSeed=this.seed;this.time=0;this.tick=0;this.ships=[];this.formations=[];this.bolts=[];this.rockets=[];this.events=[];this.lives=3;this.score=0;this.kills=0;this.hits=0;this.shots=0;this.serial=0;this.projectileSerial=0;this.result=null;this.respawn=0;this.rocketCooldown=0;this.phase='opening';this.autopilot=autopilot;this.admirals=[0,1].map(side=>Battle.freshAdmiral(side));this.inference={real:0,fixture:0,fallback:0,status:'standing orders'};this.contacts=[[],[]];this.lastDamage=0;
   for(let side=0;side<2;side++)for(let n=0;n<10;n++){
    const dir=side?1:-1,kind=n<4?'fighter':n<6?'scout':n<9?'artillery':'cavalry';
    // Keep the broad Battle-of-Britain echelons, with their opening lines
@@ -71,7 +71,7 @@ export class Battle{
    const blueY=kind==='fighter'?(n%2?.71:.705):kind==='artillery'?.91:kind==='scout'?.62:.73;
    const y=(side?1-blueY:blueY)*WORLD.height;
    const f={id:side*10+n,side,n,kind,name:formationName(side,kind,n),x,y,a:dir*Math.PI/2,count:0,leader:null,state:kind==='scout'?'patrol':'travel',target:(1-side)*10+n,goal:{x,y:WORLD.height/2},recall:null,drainAt:0,role:'opening',patrolLeg:side?2:0,orderGoal:null,orderSquare:null,finishing:null};
-   this.formations.push(f);const count=kind==='fighter'?30:kind==='scout'?0:kind==='artillery'?11:20;
+   this.formations.push(f);const count=kind==='fighter'?30:kind==='scout'?0:kind==='artillery'?11:10;
    for(let slot=0;slot<count;slot++){
     const k=kind==='artillery'?(slot===0?'artillery':'fighter'):kind,stats=TYPES[k],pos=formationPoint(f,slot);
     const s={id:this.serial++,side,formation:f.id,slot,kind:k,player:side===0&&n===1&&slot===0,...pos,a:f.a,vx:0,vy:dir*(kind==='artillery'?TYPES.artillery.speed+(n-6):kind==='scout'?stats.speed:RULES.formationSpeed),hp:stats.hp,maxHp:stats.hp,shield:k==='artillery'?0:2,lastHit:-10,alive:true,radius:stats.radius,cooldown:this.random(),target:null,phase:this.random()*Math.PI*2,flash:0,boost:1,outside:0,tagged:false};
@@ -111,7 +111,7 @@ export class Battle{
    const dir=side?1:-1,x=WORLD.width*.5,y=WORLD.height*(side?.3:.7);
    const f={id,side,n:16,kind:'cavalry',name:formationName(side,'cavalry',16),x,y,a:dir*Math.PI/2,count:0,leader:null,state:'travel',target:32+(1-side),goal:{x,y:WORLD.height/2},recall:null,drainAt:0,role:'opening',patrolLeg:0,orderGoal:null,orderSquare:null,finishing:null};
    this.formations.push(f);
-   for(let slot=0;slot<20;slot++){const stats=TYPES.cavalry;this.ships.push({id:this.serial++,side,formation:id,slot,kind:'cavalry',player:false,...formationPoint(f,slot),a:f.a,vx:0,vy:dir*stats.speed,hp:this.result?0:stats.hp,maxHp:stats.hp,shield:2,lastHit:-10,alive:!this.result,radius:stats.radius,cooldown:this.random(),target:null,phase:this.random()*Math.PI*2,flash:0,boost:1,outside:0,tagged:false});}
+   for(let slot=0;slot<10;slot++){const stats=TYPES.cavalry;this.ships.push({id:this.serial++,side,formation:id,slot,kind:'cavalry',player:false,...formationPoint(f,slot),a:f.a,vx:0,vy:dir*stats.speed,hp:this.result?0:stats.hp,maxHp:stats.hp,shield:2,lastHit:-10,alive:!this.result,radius:stats.radius,cooldown:this.random(),target:null,phase:this.random()*Math.PI*2,flash:0,boost:1,outside:0,tagged:false});}
    f.full=this.members(id).reduce((t,s)=>t+shipWorth(s),0);
   }
  }
@@ -132,7 +132,7 @@ export class Battle{
    const dir=side?1:-1,x=WORLD.width*.66,y=WORLD.height*(side?.27:.73);
    const f={id,side,n:14,kind:'cavalry',name:formationName(side,'cavalry',14),x,y,a:dir*Math.PI/2,count:0,leader:null,state:'travel',target:28+(1-side),goal:{x,y:WORLD.height/2},recall:null,drainAt:0,role:'opening',patrolLeg:0,orderGoal:null,orderSquare:null,finishing:null};
    this.formations.push(f);
-   for(let slot=0;slot<20;slot++){const stats=TYPES.cavalry;this.ships.push({id:this.serial++,side,formation:id,slot,kind:'cavalry',player:false,...formationPoint(f,slot),a:f.a,vx:0,vy:dir*stats.speed,hp:this.result?0:stats.hp,maxHp:stats.hp,shield:2,lastHit:-10,alive:!this.result,radius:stats.radius,cooldown:this.random(),target:null,phase:this.random()*Math.PI*2,flash:0,boost:1,outside:0,tagged:false});}
+   for(let slot=0;slot<10;slot++){const stats=TYPES.cavalry;this.ships.push({id:this.serial++,side,formation:id,slot,kind:'cavalry',player:false,...formationPoint(f,slot),a:f.a,vx:0,vy:dir*stats.speed,hp:this.result?0:stats.hp,maxHp:stats.hp,shield:2,lastHit:-10,alive:!this.result,radius:stats.radius,cooldown:this.random(),target:null,phase:this.random()*Math.PI*2,flash:0,boost:1,outside:0,tagged:false});}
   }
  }
  queueReinforcements(side){
@@ -186,13 +186,12 @@ export class Battle{
  followPoint(){const f=this.squad();if(!f||!f.count)return null;const s=this.ships[f.leader];return {x:f.state==='regroup'?f.recall.x:s?.x??f.x,y:f.state==='regroup'?f.recall.y:s?.y??f.y,name:f.name,state:f.state,role:f.role};}
  updateGroups(){for(const f of this.formations){const m=this.members(f.id);f.count=m.length;if(!m.length){f.leader=null;continue;}if(!m.some(s=>s.id===f.leader))f.leader=(m.find(s=>!s.player)||m[0]).id;f.cx=m.reduce((v,s)=>v+s.x,0)/m.length;f.cy=m.reduce((v,s)=>v+s.y,0)/m.length;}}
  updateVision(){
-  this.contacts=[[],[]];for(let side=0;side<2;side++){
-   const friends=this.living(side);for(const s of this.ships){if(!s.alive)continue;const visible=s.side===side||friends.some(a=>(a.x-s.x)**2+(a.y-s.y)**2<TYPES[a.kind].vision**2)||(s.kind==='artillery'&&s.arrived&&friends.some(a=>a.kind==='artillery'&&a.arrived));if(visible)this.contacts[side].push(s.id);}
-  }
-  // The battle remembers on the admirals' behalf: last seen square of every enemy piece out of contact.
-  if(this.admirals)for(let side=0;side<2;side++){const seen=new Set(this.contacts[side]);for(const f of this.formations){if(f.side===side)continue;const m=this.members(f.id).filter(s=>seen.has(s.id));if(!m.length)continue;const x=m.reduce((n,s)=>n+s.x,0)/m.length,y=m.reduce((n,s)=>n+s.y,0)/m.length;this.admirals[side].lastSeen[f.id]={x:Math.round(x),y:Math.round(y),square:squareOf(x,y).name,count:m.length,at:Math.round(this.time)};}}
+  // Both admirals and the pilot have the same complete battlefield view.
+  const alive=this.ships.filter(s=>s.alive).map(s=>s.id);
+  this.contacts=[alive.slice(),alive.slice()];
+  if(this.admirals)for(const a of this.admirals)a.lastSeen={};
  }
- visible(s,side=0){return s.alive&&(s.side===side||this.contacts[side].includes(s.id));}
+ visible(s,side=0){return s.alive;}
  turretPoint(s,t){const a=s.a+Math.PI/2;return{x:s.x+Math.cos(a)*t.ox-Math.sin(a)*t.oy,y:s.y+Math.sin(a)*t.ox+Math.cos(a)*t.oy};}
  railState(s){if(!s.alive||s.kind!=='artillery')return null;let start=s.railNext;if(this.time>=start+1)return null;const till=start-this.time;if(till>3)return null;return{active:till<=0,seconds:Math.max(0,till),a:(s.railAim??s.a)+(till<=0?(clamp(-till,0,1)-.5)*.012:0),start};}
  // One admiral's pulse: its clock expires, its board goes out for orders, and its commanded pieces
@@ -211,7 +210,7 @@ export class Battle{
   const a=this.admirals[side],visible=new Set(this.contacts[side]),pieces=[],enemies=[],ghosts=[];
   for(const f of this.formations){const m=this.members(f.id);if(!m.length)continue;
    if(f.side===side){const p=this.pieceState(f,m);const own={...p,reach:this.reach(f.kind)};if(m.some(s=>s.player))own.player=true;if(f.finishing!=null)own.finishing=f.finishing;pieces.push(own);continue;}
-   const seen=m.filter(s=>visible.has(s.id));
+   const seen=m;
    if(seen.length){const p=this.pieceState(f,seen);const e={...p};if(seen.length<m.length)e.partial=true;enemies.push(e);}
    else{const g=a.lastSeen[f.id];if(g)ghosts.push({id:f.id,kind:f.kind,square:g.square,count:g.count,age:Math.max(0,Math.round(this.time-g.at))});}
   }
@@ -390,7 +389,7 @@ export class Battle{
   }else if(f.kind==='cargo'){
    const pod=this.ships.find(t=>t.alive&&t.formation===f.id&&t.kind==='cargo'&&t.pod===s.pod)||this.ships.find(t=>t.alive&&t.formation===f.id&&t.kind==='cargo');
    if(pod){const hold=figureEight(pod,s,this.time,.82);x=hold.x;y=hold.y;speed=RULES.cruiseSpeed;if(target&&!pending&&distance(s,target)<680){x=target.x;y=target.y;speed=stats.speed;}}
-  }else if(target&&distance(s,target)<(threatened?1500:1100)&&(threatened||distance(s,f.goal)<1500)){
+  }else if(target&&distance(s,target)<(threatened?1500:800)&&(threatened||(distance(s,f)<1000&&distance(target,f)<1250))){
    // Individual intercepts within the squadron's objective area.
    // Brief straight exits prevent point-blank pursuit from becoming a curl.
    const d=distance(s,target);
@@ -412,6 +411,13 @@ export class Battle{
     if(d<140){x=s.x+Math.cos(s.a)*360;y=s.y+Math.sin(s.a)*360;}
    }else{const hold=figureEight({x:WORLD.width/2,y:WORLD.height/2},s,this.time,2);x=hold.x;y=hold.y;}
    speed=stats.speed;
+  }
+  // Keep each wing together: local dogfights are allowed, long solo pursuits are not.
+  // Blend back toward the assigned slot before a straggler loses the squadron.
+  if((f.kind==='fighter'||f.kind==='cavalry')&&!recalling&&!threatened){
+   const slot=formationPoint(f,s.slot),drift=distance(s,slot),cohesion=clamp((drift-350)/650,0,1);
+   x+=(slot.x-x)*cohesion;y+=(slot.y-y)*cohesion;
+   if(cohesion===1)speed=stats.speed;
   }
   // Threat lanes are visible signals even when the firing fortress is outside sensors.
   if(s.railEvade&&s.railEvade.until<this.time)s.railEvade=null;
@@ -507,8 +513,8 @@ export class Battle{
   // The first cargo release mislabeled fresh 418-ship saves as version 20.
   // Upgrade only the complete cargo shape; do not append a second merchant wave.
   if(d?.version===20&&d.ships?.length===418&&d.formations?.length===28)d={...d,version:21};
-  const legacy=d?.version>=10&&d.version<=20,cargoSave=d?.version===21,modern=d?.version>=22&&d?.version<=27;
-  if((!legacy&&!cargoSave&&!modern)||(legacy&&(d.ships?.length!==354||d.formations?.length!==20))||(cargoSave&&(d.ships?.length!==418||d.formations?.length!==28))||(modern&&(!Array.isArray(d.ships)||d.ships.length<402||d.ships.length>760||d.formations?.length!==(d.version>=26?34:d.version===25?32:30)))||!Number.isFinite(d.time)||d.time<0||!Number.isInteger(d.playerId)||d.playerId<0||d.playerId>=d.ships.length)throw new Error('Saved battle belongs to a different version.');
+  const legacy=d?.version>=10&&d.version<=20,cargoSave=d?.version===21,modern=d?.version>=22&&d?.version<=28;
+  if((!legacy&&!cargoSave&&!modern)||(legacy&&(d.ships?.length!==354||d.formations?.length!==20))||(cargoSave&&(d.ships?.length!==418||d.formations?.length!==28))||(modern&&(!Array.isArray(d.ships)||d.ships.length<396||d.ships.length>760||d.formations?.length!==(d.version>=26?34:d.version===25?32:30)))||!Number.isFinite(d.time)||d.time<0||!Number.isInteger(d.playerId)||d.playerId<0||d.playerId>=d.ships.length)throw new Error('Saved battle belongs to a different version.');
   if(modern||cargoSave)d=JSON.parse(JSON.stringify(d));
   // Expand existing flights into the new sector without resetting progress, losses or paid rounds.
   if(d.version===10){d=JSON.parse(JSON.stringify(d));const shift=p=>{if(p){p.x+=900;p.y+=900;}};
@@ -589,6 +595,6 @@ export class Battle{
   if(!Array.isArray(b.admirals)||b.admirals.length!==2)b.admirals=[0,1].map(side=>Battle.freshAdmiral(side,Math.max(RULES.firstRecall,b.time+8)));
   for(const f of b.formations){if(f.orderGoal===undefined)f.orderGoal=null;if(f.orderSquare===undefined)f.orderSquare=null;if(f.finishing===undefined)f.finishing=null;if(f.recall&&f.state==='regroup'&&!Number.isFinite(f.drainAt))f.drainAt=b.time+RULES.regroup;}
   b.addCommandShips();b.addCavalryReserve();for(const f of b.formations)if(!Number.isFinite(f.full))f.full=b.ships.filter(s=>s.formation===f.id).reduce((t,s)=>t+(WEIGHTS[s.kind]??1),0);
-  b.version=27;if(b.playerCruising===undefined)b.playerCruising=false;for(const s of b.ships)if(s.kind==='scout')s.alive=false;for(const a of b.admirals)for(const id of [4,5,14,15])delete a.lastSeen[id];for(const f of b.formations)if(f.finishing!=null&&!BIG_HULLS.has(b.formations[f.finishing]?.kind))f.finishing=null;for(const s of b.ships)if(!Number.isFinite(s.x)||!Number.isFinite(s.y)||!Number.isFinite(s.hp)||!TYPES[s.kind])throw new Error('Invalid saved ship.');b.events=[];b.updateGroups();b.updateVision();return b;
+  b.version=28;if(b.playerCruising===undefined)b.playerCruising=false;for(const s of b.ships)if(s.kind==='scout')s.alive=false;for(const a of b.admirals)for(const id of [4,5,14,15])delete a.lastSeen[id];for(const f of b.formations)if(f.finishing!=null&&!BIG_HULLS.has(b.formations[f.finishing]?.kind))f.finishing=null;for(const s of b.ships)if(!Number.isFinite(s.x)||!Number.isFinite(s.y)||!Number.isFinite(s.hp)||!TYPES[s.kind])throw new Error('Invalid saved ship.');b.events=[];b.updateGroups();b.updateVision();return b;
  }
 }

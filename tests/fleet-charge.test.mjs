@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {Battle} from '../dist/simulation.js';
+test('fresh fleets halve cavalry and expose all surviving formations to both admirals',()=>{const b=new Battle(42);for(const side of [0,1]){assert.equal(b.living(side).filter(s=>s.kind==='cavalry').length,30);const snap=b.decisionSnapshot(side);assert.equal(snap.enemies.length,15);assert.equal(snap.enemies.reduce((n,p)=>n+p.count,0),198);assert.equal(snap.ghosts.length,0);assert.ok(b.ships.every(s=>b.visible(s,side)));}const victim=b.commandShip(1);victim.alive=false;b.updateGroups();b.updateVision();assert.ok(!b.visible(victim));assert.equal(b.decisionSnapshot(0).enemies.reduce((n,p)=>n+p.count,0),197);});
