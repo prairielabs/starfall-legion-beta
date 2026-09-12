@@ -148,4 +148,6 @@ effects and music are CC0; exact sources and transformations are documented in
 
 Created by [Prairie Labs](https://prairielabs.ai).
 
-The fleet-charge update halves cavalry to 30 ships per side, tightens squadron cohesion, and opens with a five-second flight from the full fleet into the moving pilot. Hosted model radio uses the arcade font and direct rival-addressed orders; the free edition continues to use local commanders. Existing saved fleets retain their ships; the smaller cavalry roster applies to fresh battles.
+The fleet-charge update halves cavalry to 30 ships per side, tightens squadron cohesion, and opens with a 3.5-second flight from the friendly formations into the moving pilot. Hosted model radio uses the arcade font and direct rival-addressed orders; the free edition continues to use local commanders. Existing saved fleets retain their ships; the smaller cavalry roster applies to fresh battles.
+
+The pilot now starts in the far-left fighter wing, cruising until movement or fire takes control. Entry zoom runs at display cadence and blends into the regular follow camera; colored arcade stars stay visible at every zoom.

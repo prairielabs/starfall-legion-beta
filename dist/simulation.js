@@ -74,7 +74,7 @@ export class Battle{
    this.formations.push(f);const count=kind==='fighter'?30:kind==='scout'?0:kind==='artillery'?11:10;
    for(let slot=0;slot<count;slot++){
     const k=kind==='artillery'?(slot===0?'artillery':'fighter'):kind,stats=TYPES[k],pos=formationPoint(f,slot);
-    const s={id:this.serial++,side,formation:f.id,slot,kind:k,player:side===0&&n===1&&slot===0,...pos,a:f.a,vx:0,vy:dir*(kind==='artillery'?TYPES.artillery.speed+(n-6):kind==='scout'?stats.speed:RULES.formationSpeed),hp:stats.hp,maxHp:stats.hp,shield:k==='artillery'?0:2,lastHit:-10,alive:true,radius:stats.radius,cooldown:this.random(),target:null,phase:this.random()*Math.PI*2,flash:0,boost:1,outside:0,tagged:false};
+    const s={id:this.serial++,side,formation:f.id,slot,kind:k,player:side===0&&n===(autopilot?1:0)&&slot===0,...pos,a:f.a,vx:0,vy:dir*(kind==='artillery'?TYPES.artillery.speed+(n-6):kind==='scout'?stats.speed:RULES.formationSpeed),hp:stats.hp,maxHp:stats.hp,shield:k==='artillery'?0:2,lastHit:-10,alive:true,radius:stats.radius,cooldown:this.random(),target:null,phase:this.random()*Math.PI*2,flash:0,boost:1,outside:0,tagged:false};
     if(s.player){s.vy=autopilot?dir*RULES.formationSpeed:0;s.cooldown=0;this.playerId=s.id;}
    if(k==='artillery'){s.route=artilleryRoute(n,side);s.arrived=false;s.railNext=RULES.railFirst;s.railFired=-1;s.railHits=[];s.turrets=TURRETS.map(([tx,ty],i)=>({id:i,ox:tx,oy:ty,cooldown:this.random()*2,burst:0,flash:0}));}
     this.ships.push(s);
@@ -485,7 +485,7 @@ export class Battle{
    if(s.kind==='artillery'){this.artillery(s,dt,grid);continue;}
    if(s.kind==='command'){this.command(s,dt,grid);continue;}
    if(s.kind==='cargo'){this.cargo(s,dt,grid);continue;}
-   if(s.player&&!this.autopilot){if(input.x||input.y)this.playerCruising=false;const x=clamp(input.x||0,-1,1),y=clamp(input.y||(this.playerCruising?-1:0),-1,1),len=Math.max(1,Math.hypot(x,y)),speed=RULES.playerSpeed,ease=1-Math.exp(-RULES.acceleration*dt);s.vx+=(x/len*speed-s.vx)*ease;s.vy+=(y/len*speed-s.vy)*ease;const aim=Number.isFinite(input.aim)?input.aim:-Math.PI/2,turn=TYPES[s.kind].turn*dt;s.a+=clamp(angleDelta(s.a,aim),-turn,turn);s.boosting=false;if(Number.isFinite(s.burstAt)&&this.time+1e-9>=s.burstAt){s.burstRemaining=Math.max(0,(s.burstRemaining??1)-1);s.burstAt=s.burstRemaining?this.time+.12:null;this.fire(s,s.a,{burstFollowup:true,damage:TYPES[s.kind].damage*.5});}if(input.fire)this.fire(s,s.a);}
+   if(s.player&&!this.autopilot){if(input.x||input.y||input.fire||input.rocket)this.playerCruising=false;const x=clamp(input.x||0,-1,1),y=clamp(input.y||(this.playerCruising?-1:0),-1,1),len=Math.max(1,Math.hypot(x,y)),speed=RULES.playerSpeed,ease=1-Math.exp(-RULES.acceleration*dt);s.vx+=(x/len*speed-s.vx)*ease;s.vy+=(y/len*speed-s.vy)*ease;const aim=Number.isFinite(input.aim)?input.aim:-Math.PI/2,turn=TYPES[s.kind].turn*dt;s.a+=clamp(angleDelta(s.a,aim),-turn,turn);s.boosting=false;if(Number.isFinite(s.burstAt)&&this.time+1e-9>=s.burstAt){s.burstRemaining=Math.max(0,(s.burstRemaining??1)-1);s.burstAt=s.burstRemaining?this.time+.12:null;this.fire(s,s.a,{burstFollowup:true,damage:TYPES[s.kind].damage*.5});}if(input.fire)this.fire(s,s.a);}
    else this.npc(s,dt,grid);
    s.x+=s.vx*dt;s.y+=s.vy*dt;
    if(s.player){if(s.x<0||s.x>WORLD.width||s.y<0||s.y>WORLD.height){s.outside+=dt;if(s.outside>=5)this.destroy(s,{boundary:true});}else s.outside=0;}
