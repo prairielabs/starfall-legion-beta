@@ -59,6 +59,29 @@ The commercial beta-code, payment, Mint, provider-key, and hosted inference
 services are deliberately not part of this repository. The free edition uses
 local fleet decisions and requires no account, code, API key, or network call.
 
+## Beta access and the Prairie Labs system
+
+This public repository is the open free-play game. Beta access codes and
+provider-backed sessions belong to the separately operated Starfall Legion /
+GenSim portal system from [Prairie Labs](https://prairielabs.ai). Existing beta
+players should enter their code through the hosted experience at
+[starfalllegion.com](https://starfalllegion.com); the open-source build neither
+issues nor redeems codes.
+
+Please do not paste beta codes, provider keys, session data, or portal
+credentials into issues, pull requests, commits, or browser code. The GenSim
+service boundary is intentionally absent here so the game can stay genuinely
+public without publishing customer access or operational infrastructure.
+
+## Agents and Everywhere AI tinkerers
+
+OpenRouter- and OpenAI-based experimenters are welcome to wire in their own
+fleet commanders. Start with [`AGENTS.md`](AGENTS.md): it documents the local
+decision seam, legal-order boundary, fog-of-war contract, and the rule that API
+keys and model calls must remain behind a server you control. The checked-in
+free adapter stays local and deterministic, so cloning this repository never
+spends tokens or contacts a model provider.
+
 ## Test
 
 ```sh
@@ -69,8 +92,9 @@ npm test
 
 Issues and pull requests are welcome. Please keep changes deterministic,
 preserve fog-of-war boundaries, and include a focused test for gameplay rule
-changes. Never add credentials, access codes, paid-session data, or proprietary
-service configuration.
+changes. Agent integrations should follow [`AGENTS.md`](AGENTS.md). Never add
+credentials, access codes, paid-session data, or proprietary service
+configuration.
 
 ## License and credits
 
