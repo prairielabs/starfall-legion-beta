@@ -30,7 +30,7 @@ export class ArcadeSound {
  }
  startLoop(id,bus){if(this.loops.has(id)||!this.buffers.has(id))return;const source=this.context.createBufferSource();source.buffer=this.buffers.get(id);source.loop=true;source.connect(bus);source.start();this.loops.set(id,source);}
  setMuted(value){this.muted=value;if(this.context)this.master.gain.setTargetAtTime(value?0:.85,this.context.currentTime,.02);}
- applyMode(){if(!this.context)return;const t=this.context.currentTime,paused=this.mode==='paused';this.sfx.gain.setTargetAtTime(paused?0:1,t,.025);this.music.gain.setTargetAtTime(paused?0:this.mode==='playing'?.14:this.mode==='ended'?.05:.1,t,.08);if(paused||this.mode!=='playing')this.engine.gain.setTargetAtTime(0,t,.04);this.motorState=null;}
+ applyMode(){if(!this.context)return;const t=this.context.currentTime,paused=this.mode==='paused';this.sfx.gain.setTargetAtTime(paused?0:1,t,.025);this.music.gain.setTargetAtTime(paused?0:this.mode==='playing'?.17:this.mode==='ended'?.06:.12,t,.08);if(paused||this.mode!=='playing')this.engine.gain.setTargetAtTime(0,t,.04);this.motorState=null;}
  update(mode,thrust=0){if(this.mode!==mode){this.mode=mode;this.applyMode();}const c=this.context;if(!c||c.state!=='running')return;const level=Math.round(thrust*20)/20,key=mode+':'+level;if(key!==this.motorState){this.motorState=key;this.engine.gain.setTargetAtTime(mode==='playing'?.08+level*.09:0,c.currentTime,.07);}}
  play(id,{gain=1,pan=0,rate=1,at=null,duration=null}={}){
   const c=this.context,buffer=this.buffers.get(id);if(!c||!buffer||this.muted||this.mode==='paused'||c.state!=='running'||this.voices>=32)return;
