@@ -60,7 +60,9 @@ the scorebar.
 - Fighters retain formation-level objectives but select and retaliate against
   opponents individually, producing distributed dogfights.
 - Recalls last while the admiral thinks, then regroup for 2.5 seconds on the squadron centre.
-- Green corner ticks and map dots identify the player's squadron.
+- Green corner ticks and map dots identify the player's squadron; the pilot flies in a centre squadron.
+- Spectating uses an auto cam that rides with a ship in the action and hops every few seconds; Tab cycles by hand.
+- Three cavalry wings per side; the third holds the centre of the line.
 - When the pilot's lives are exhausted, the fight continues in spectator mode.
 
 ## Project layout

@@ -78,22 +78,22 @@ test('the simulation spawns only kinds the board knows', () => {
  assert.deepEqual([...new Set(battle.ships.map(s => s.kind))].sort(), ['artillery', 'cargo', 'cavalry', 'command', 'escort', 'fighter', 'scout']);
 });
 
-test('the full roster is on the board: 32 pieces covering all 424 ships', () => {
+test('the full roster is on the board: 34 pieces covering all 464 ships', () => {
  const battle = fresh();
  const all = pieces(battle);
- assert.equal(battle.ships.length, 424);
- assert.equal(all.length, 32);
+ assert.equal(battle.ships.length, 464);
+ assert.equal(all.length, 34);
  const count = kind => all.filter(p => p.kind === kind).length;
  assert.equal(count('fighter'), 8);
  assert.equal(count('scout'), 4);
  assert.equal(count('artillery'), 6);
- assert.equal(count('cavalry'), 4);
+ assert.equal(count('cavalry'), 6);
  assert.equal(count('cargo'), 8);
  assert.equal(count('command'), 2);
- assert.equal(all.filter(p => p.side === 0).length, 16);
- assert.equal(all.filter(p => p.side === 1).length, 16);
+ assert.equal(all.filter(p => p.side === 0).length, 17);
+ assert.equal(all.filter(p => p.side === 1).length, 17);
  const covered = new Set(all.flatMap(p => battle.members(p.id).map(s => s.id)));
- assert.equal(covered.size, 424);
+ assert.equal(covered.size, 464);
  assert.ok(battle.ships.every(s => covered.has(s.id)));
  // Exactly one piece carries the human pilot.
  assert.equal(all.filter(p => p.player).length, 1);
@@ -112,7 +112,7 @@ test('every living ship stays on a piece through a whole battle', () => {
    const alive = battle.ships.filter(s => s.alive);
    const missing = alive.filter(s => !covered.has(s.id));
    assert.equal(missing.length, 0, `t=${Math.round(battle.time)}: ${missing.length} living ships off the board`);
-   assert.ok(pieces(battle).length <= 32);
+   assert.ok(pieces(battle).length <= 34);
   }
  }
  assert.ok(samples > 20, 'the battle ran long enough to matter');
@@ -211,7 +211,7 @@ test('a move order says whether the square is within reach', () => {
 test('legal moves list only reachable squares for each piece', () => {
  const battle = fresh();
  const moves = legalMoves(battle, 0);
- assert.equal(moves.length, 16);
+ assert.equal(moves.length, 17);
  for (const move of moves) {
   assert.ok(move.squares.includes(move.at));
   // Fast pieces (scouts, cavalry) can cover the whole board; slow ones cannot.
@@ -244,7 +244,7 @@ test('the board view inherits the existing fog', () => {
  assert.equal(view.version, 2);
  assert.equal(view.side, 0);
  assert.deepEqual(view.board, { files: 14, ranks: 14, square: 1000 });
- assert.equal(view.own.length, 16);
+ assert.equal(view.own.length, 17);
  assert.ok(view.own.every(p => p.side === 0));
  assert.ok(view.enemy.every(p => p.side === 1));
  const visible = new Set(battle.contacts[0]);
@@ -269,7 +269,7 @@ test('the rendered board shows all thirty pieces with the right case', () => {
  // Every piece is drawn once, either alone or as part of a stacked count.
  assert.ok(upper + lower >= 1);
  const drawn = upper + lower + stacked;
- assert.ok(drawn <= 32 && drawn >= 10, `drawn ${drawn}`);
+ assert.ok(drawn <= 34 && drawn >= 10, `drawn ${drawn}`);
  assert.match(lines[16], /BLUE upper case/);
  assert.match(body, /K/); assert.match(body, /k/);
  // Fogged render for blue omits enemy pieces out of contact.
@@ -277,8 +277,8 @@ test('the rendered board shows all thirty pieces with the right case', () => {
  const foggedLower = (fogged.split('\n').slice(1, 15).join('').match(/[fsacmk]/g) || []).length;
  assert.ok(foggedLower < lower || lower === 0);
  // The roster is one line per piece.
- assert.equal(roster(battle).length, 32);
- assert.equal(roster(battle, 1).length, 16);
+ assert.equal(roster(battle).length, 34);
+ assert.equal(roster(battle, 1).length, 17);
  assert.ok(roster(battle).some(line => line.includes('(pilot)')));
 });
 
@@ -290,5 +290,5 @@ test('a destroyed formation leaves the board', () => {
  assert.equal(centreOfGravity(battle, formation.id), null);
  assert.equal(pieceOf(battle, formation.id), null);
  assert.ok(!pieces(battle).some(p => p.id === formation.id));
- assert.equal(pieces(battle).length, 31);
+ assert.equal(pieces(battle).length, 33);
 });

@@ -16,7 +16,7 @@ test('fighters spread otherwise equal target claims into individual dogfights',(
 test('a recall lasts as long as its admiral thinks, then regroups for 2.5 seconds on the squadron centre',()=>{
  const battle=new Battle(734);battle.time=30;battle.updateGroups();const blue=battle.formations.find(f=>f.side===0&&f.kind==='fighter'),red=battle.formations.find(f=>f.side===1&&f.kind==='fighter'),blueY=blue.cy;
  battle.beginRecall(0);
- assert.equal(RULES.regroup,2.5);assert.equal(RULES.cycle,30);assert.equal(RULES.thinkCeiling,12);
+ assert.equal(RULES.regroup,2.5);assert.equal(RULES.cycle,30);assert.equal(RULES.thinkCeiling,16);
  assert.equal(blue.state,'regroup');assert.equal(blue.drainAt,Infinity);assert.equal(blue.recall.y,blueY);
  assert.notEqual(red.state,'regroup');
  battle.time=34;const snap=battle.decisionSnapshot(0);assert.ok(battle.acceptOrders(snap,battle.fallback(snap),'fixture'));assert.equal(blue.drainAt,36.5);assert.equal(battle.admirals[0].nextAt,64);
