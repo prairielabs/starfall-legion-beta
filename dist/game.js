@@ -45,9 +45,9 @@ function queueSave(){if(pendingSave!==null)return;const generation=requestGenera
 function pause(value){if(!['playing','paused'].includes(mode))return;mode=value?'paused':'playing';sfx.update(mode);$('pause-screen').hidden=!value;resetInput();acc=0;renderAlpha=1;frameMeter.reset();save();if(!value){soundInit();canvas.focus();}}
 $('pause').onclick=()=>pause(true);$('resume').onclick=()=>pause(false);$('end-flight').onclick=()=>{if(battle){battle.finish('retired','FLIGHT ENDED');handleEvents();}};
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('cabinet').requestFullscreen();}catch{$('save-status').textContent='Fullscreen is unavailable here. The game still fits this window.';}};
-function paintSound(){for(const id of ['sound','pause-sound','battle-sound']){const button=$(id),label=muted?'ENABLE SOUND':sfx.loading?'LOADING SOUND':sfx.error?'RETRY SOUND':'MUTE SOUND';if(button.textContent!==label)button.textContent=label;button.setAttribute('aria-pressed',String(!muted));button.title=muted?'Enable sound (M)':sfx.error||'Mute sound (M)';}}
+function paintSound(){for(const id of ['sound','pause-sound','battle-sound']){const button=$(id),label=muted?'ENABLE SOUND':sfx.loading?'LOADING SOUND':sfx.error?'RETRY SOUND':sfx.context?.state!=='running'?'ENABLE SOUND':'MUTE SOUND';if(button.textContent!==label)button.textContent=label;button.setAttribute('aria-pressed',String(!muted));button.title=muted?'Enable sound (M)':sfx.error||'Mute sound (M)';}}
 function mute(){muted=!muted;sfx.setMuted(muted);paintSound();try{browserStorage.setItem('starfall-sound',muted?'off':'on');}catch{}}
-try{muted=browserStorage.getItem('starfall-sound')==='off';}catch{}sfx.setMuted(muted);paintSound();for(const id of ['sound','pause-sound','battle-sound'])$(id).onclick=()=>{if(!sfx.error||muted)mute();void soundInit().then(()=>{if(!muted)sfx.signal();});canvas.focus();};
+try{muted=browserStorage.getItem('starfall-sound')==='off';}catch{}sfx.setMuted(muted);paintSound();for(const id of ['sound','pause-sound','battle-sound'])$(id).onclick=()=>{if(muted||(!sfx.error&&sfx.context?.state==='running'))mute();void soundInit().then(()=>{if(!muted)sfx.signal();});canvas.focus();};
 function spectatorShips(){return battle?battle.living(0).sort((a,b)=>a.id-b.id):[];}
 // Auto cam: while spectating, the camera rides along with a ship in the thick of it, up close, and
 // hops to another every few seconds. Tab cycles ships by hand, then the map, then back to auto cam.
@@ -321,3 +321,7 @@ if(document.modelContext?.registerTool){for(const tool of [
  {name:'start_free_flight',description:'Start or resume the free browser battle. No payment or tokens.',execute:async()=>{if(!['opening','ended'].includes(mode))throw new Error('Flight already active');await start();return publicState();}},
  {name:'pause_free_flight',description:'Pause the free browser battle and save it on this device.',execute:async()=>{if(mode!=='playing')throw new Error('No playing flight');pause(true);return publicState();}}
 ])try{document.modelContext.registerTool({...tool,inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:false},execute:async args=>{if(!args||Object.keys(args).length)throw new Error('Expected empty input');return tool.execute();}});}catch{}}
+
+// Unlock lobby music on the first browser-authorized interaction.
+for(const event of ['pointerdown','keydown'])window.addEventListener(event,e=>{if(e.target?.closest?.('#sound,#pause-sound,#battle-sound'))return;if(!muted&&sfx.context?.state!=='running')void soundInit();},{capture:true});
+void soundInit();
