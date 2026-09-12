@@ -125,3 +125,5 @@ h1,h2,.final-score{font-family:Arcade,monospace;font-weight:400}h1{font-size:cla
 .admiral-logo{width:26px;height:26px;object-fit:contain;display:inline-block;margin-right:9px;border-radius:4px;vertical-align:middle}@media(max-width:600px){.admiral-logo{width:16px;height:16px;margin-right:4px}}
 
 #zoom-hint{white-space:pre-line;text-align:center;font-family:Arcade,monospace;font-size:8px;line-height:2;animation:launch-hint-fade 14s linear forwards}@keyframes launch-hint-fade{0%,85%{opacity:1}100%{opacity:0}}.admiral-comment.radio-flash{animation:radio-light 1.2s ease-out}@keyframes radio-light{0%,30%{box-shadow:0 0 24px currentColor;background:#263544}100%{box-shadow:0 0 0 transparent;background:#060c17ed}}@media(prefers-reduced-motion:reduce){.admiral-comment.radio-flash{animation:none}}
+
+.admiral-comment.radio-flash{animation:radio-light 1.2s ease-out,radio-fade .7s ease-in 8s forwards}@keyframes radio-fade{to{opacity:0}}@media(prefers-reduced-motion:reduce){.admiral-comment.radio-flash{animation:none}}

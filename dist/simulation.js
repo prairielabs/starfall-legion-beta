@@ -115,7 +115,7 @@ export class Battle{
    f.full=this.members(id).reduce((t,s)=>t+shipWorth(s),0);
   }
  }
- static freshAdmiral(side,nextAt=RULES.firstRecall){return{side,epoch:0,nextAt,pending:false,sentAt:null,ordersAt:null,status:'standing orders',real:0,fixture:0,fallback:0,local:0,clamped:0,lastSeen:{}};}
+ static freshAdmiral(side,nextAt=RULES.firstRecall+side*15){return{side,epoch:0,nextAt,pending:false,sentAt:null,ordersAt:null,status:'standing orders',real:0,fixture:0,fallback:0,local:0,clamped:0,lastSeen:{}};}
  addCommandShips(){
   for(let side=0;side<2;side++){
    const id=30+side;if(this.formations[id])continue;
@@ -478,7 +478,7 @@ export class Battle{
   if(this.result)return;dt=clamp(dt,0,1/15);this.time+=dt;this.tick++;this.rocketCooldown=Math.max(0,this.rocketCooldown-dt);
   if(this.respawn>0){this.respawn-=dt;if(this.respawn<=0)this.replacePlayer();}if(this.result)return;
   if(this.tick%6===0)this.updateGroups();if(this.tick%12===0)this.updateVision();
-  for(const a of this.admirals){if(!a.pending&&this.time>=a.nextAt&&this.time<RULES.recallCutoff&&a.epoch<RULES.maxOrdersPerSide)this.beginRecall(a.side);if(a.pending&&this.time>=a.sentAt+RULES.thinkCeiling)this.setFallback(a.side);}
+  for(const a of this.admirals){if(!a.pending&&this.time>=a.nextAt&&this.time<RULES.recallCutoff&&a.epoch<RULES.maxOrdersPerSide&&!this.admirals[1-a.side].pending&&(this.admirals[1-a.side].ordersAt==null||this.time-this.admirals[1-a.side].ordersAt>=10))this.beginRecall(a.side);if(a.pending&&this.time>=a.sentAt+RULES.thinkCeiling)this.setFallback(a.side);}
   if(this.tick%15===0)this.updateFinishing();
   if(this.time>=RULES.rendezvousAt)this.beginCharge();
   this.launchReinforcements();

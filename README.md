@@ -157,3 +157,5 @@ One central cavalry wing remains per side. Capital health increases 20%; the com
 Launch reminds the pilot to stay with their squadron. Cavalry starts at the rear and joins after the fighters; capital approach now uses a 55-second rendezvous. Commander radio lights up on requests and keeps replies visible until the next transmission; local orders are labeled explicitly.
 
 Background stars are plain, irregularly scattered white dots. Hosted play refreshes stale saved provider connections from the same activation code before any pulse debit; unsupported old cards require re-entry with a current OpenRouter code.
+
+Radio replies now hold for eight seconds and fade over 0.7 seconds. Initial commander calls are staggered at 30/45 seconds; later calls wait for the other reply to clear.
