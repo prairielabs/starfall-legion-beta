@@ -41,7 +41,7 @@ export class ArcadeSound {
  cannon(player=true,pan=0,level=1){this.play(player?'cannon':(this.shot++%2?'cannonAlt':'cannon'),{gain:player?.9:.65*level,pan,rate:1});}
  impact(shield=false,popped=false,pan=0){this.play(shield?(popped?'shieldBreak':'shield'):'impact',{gain:popped?.55:shield?.48:.66,pan,rate:1,duration:popped?.3:.18});}
  explosion(big=false,pan=0,player=false){const now=this.context?.currentTime??0;if(!player&&now-this.lastAmbientExplosion<.09)return;if(!player)this.lastAmbientExplosion=now;this.play(big?'explosionLarge':'explosion',{gain:player?(big?.5:.42):(big?.34:.28),pan,duration:big?.85:.5});}
- rail(){this.play('rail',{gain:.6,rate:.65});}
+ rail(){const at=this.context?.currentTime;this.play('rail',{gain:.78,rate:.58});if(at!==undefined){this.play('impact',{gain:.34,rate:.58,duration:.2,at:at+.025});this.play('explosionLarge',{gain:.16,rate:.72,duration:.42,at:at+.055});}}
  signal(){this.play('signal',{gain:.35});}
  reward({kill=false,big=false,combo=1,pan=0}={}){if(!kill||!this.context)return;const at=this.context.currentTime,punch=big?1.15:1;this.play('impact',{gain:.46*punch,pan,rate:1.08+Math.min(3,Math.max(0,combo-1))*.025,duration:.085,at});this.play('explosion',{gain:.2*punch,pan,rate:.72,duration:.19,at:at+.012});this.play('impact',{gain:.13,pan,rate:1.65,duration:.055,at:at+.075});}
  ending(won){this.play(won?'signal':'explosionLarge',{gain:won?.4:.35,rate:won?1:.8});}

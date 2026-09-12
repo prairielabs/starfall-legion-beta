@@ -5,6 +5,12 @@ two autonomous fleets, three lives, hundreds of ships, fighter dogfights,
 merchant convoys, artillery fortresses, rail fire, fog of war, squad recalls
 and a spectator camera.
 
+The artillery cruiser now reads as a true capital ship: a broader textured
+hull, layered armor, spinal cannon and machinery detail. Its rail shot adds a
+wide bloom, moving energy bands, muzzle shock, a brief screen punch and a
+layered impact tail. This is presentation-only; beam timing, width, damage and
+the deterministic simulation are unchanged.
+
 This repository contains the complete free-play game. It is a static browser
 application with no build step and no runtime dependencies.
 
