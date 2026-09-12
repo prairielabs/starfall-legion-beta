@@ -2,7 +2,7 @@
 // on a 14 x 14 grid of 1,000-unit squares.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {Battle, WORLD, RULES, TYPES} from '../dist/simulation.js';
+import {Battle, WORLD, RULES, TYPES, legalOrderSquare} from '../dist/simulation.js';
 import {BOARD, KINDS, WEIGHTS, shipWorth, baseline, squareOf, centreOf, parseSquare, allSquares, reach, reachableSquares,
         centreOfGravity, pieceOf, pieces, boardView, moveOrder, applyMove, legalMoves,
         render, roster} from '../dist/board.js';
@@ -55,16 +55,16 @@ test('every kind of piece can move to a different square within one order cycle'
   assert.ok(reachableSquares('g7', kind).includes('g7'), 'holding is legal');
  }
  // The slow hulls are the binding case: two squares in a 30-second cycle; the command ship one.
- assert.equal(reach('artillery'), 2);
- assert.equal(reach('cargo'), 2);
- assert.equal(reach('command'), 1);
+ assert.equal(reach('artillery'), 4);
+ assert.equal(reach('cargo'), 4);
+ assert.equal(reach('command'), 4);
  assert.ok(reach('fighter') > reach('artillery'));
  assert.ok(reach('scout') > reach('fighter'));
  // Reach is derived from the live rules, not a hand-typed table.
  assert.equal(reach('fighter'), Math.floor(TYPES.fighter.speed * RULES.cycle / BOARD.cellWidth));
  // A corner is clipped by the edge, never thrown.
  assert.ok(reachableSquares('a1', 'artillery').every(name => parseSquare(name)));
- assert.ok(!reachableSquares('a1', 'artillery').includes('d1'));
+ assert.ok(!reachableSquares('a1', 'artillery').includes('f1'));
  assert.ok(reachableSquares('a1', 'artillery').includes('c1'));
 });
 
@@ -215,8 +215,8 @@ test('legal moves list only reachable squares for each piece', () => {
  for (const move of moves) {
   assert.ok(move.squares.includes(move.at));
   // Fast pieces (scouts, cavalry) can cover the whole board; slow ones cannot.
-  if (move.kind === 'artillery' || move.kind === 'cargo') assert.ok(move.squares.length < 30);
-  assert.deepEqual(move.squares, reachableSquares(move.at, move.kind));
+  if (move.kind === 'artillery' || move.kind === 'cargo') assert.ok(move.squares.length < 60);
+  assert.deepEqual(move.squares, reachableSquares(move.at, move.kind).filter(to=>legalOrderSquare({side:0,kind:move.kind,square:move.at,reach:move.reach},to)===to));
  }
  const battery = moves.find(m => m.kind === 'artillery');
  const squadron = moves.find(m => m.kind === 'fighter');

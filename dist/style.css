@@ -101,3 +101,9 @@ h1,h2,.final-score{font-family:Arcade,monospace;font-weight:400}h1{font-size:cla
 
 /* Scorebar, round two: ship counts largest on top, the admirals' names beneath, model names small beneath that. */
 #hud .fleet-box{font-size:clamp(25px,3.5vw,38px);min-width:236px}#hud .fleet-totals{gap:16px;align-items:start}#hud .fleet-totals span{min-width:104px}#hud .fleet-totals b{font-size:1em;font-variant-numeric:tabular-nums;line-height:1}#hud .fleet-totals small.admiral-name{font-size:clamp(11px,1.15vw,14px);font-weight:bold;color:inherit;letter-spacing:.06em;margin-top:4px}#hud .fleet-totals small.admiral-model{font-size:9px;color:#c9d3dc;letter-spacing:.06em;margin-top:2px}#hud .fleet-totals small.admiral-name.thinking{color:var(--gold);animation:think .9s steps(2,end) infinite}#hud .versus{font-size:.7em;align-self:start;margin-top:.1em}@media(max-width:600px){#hud .fleet-box{font-size:24px;min-width:176px}#hud .fleet-totals{gap:8px}#hud .fleet-totals span{min-width:74px}#hud .fleet-totals small.admiral-name{font-size:10px}#hud .fleet-totals small.admiral-model{font-size:8px}}
+
+/* Public admiral radio: appears only when a completed response arrives. */
+.admiral-comment{position:absolute;top:100px;width:min(280px,33vw);padding:10px 12px;border:1px solid currentColor;border-radius:9px;background:#060c17ed;text-shadow:none;font:13px/1.45 system-ui,sans-serif;pointer-events:none;box-shadow:0 4px 18px #0008;overflow-wrap:anywhere}
+.admiral-comment.blue{right:calc(50% + 8px)}.admiral-comment.red{left:calc(50% + 8px)}
+.admiral-comment strong{display:block;font-size:10px;letter-spacing:.06em;margin-bottom:4px}.admiral-comment span{color:#eef3f7}
+@media(max-width:600px){.admiral-comment{top:85px;width:calc(50% - 19px);padding:7px;font-size:11px}.admiral-comment strong{font-size:9px}}

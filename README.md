@@ -36,6 +36,11 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 ## Commander battles
 
+The fleets now close toward the centre in about 70 seconds. Capital ships stay
+on their own side of the centre line; fighters and cavalry can cross to attack.
+Cavalry formations use their faster class speed. The hosted model edition shows
+a short radio comment when each admiral completes its orders.
+
 The hosted paid edition now pits **ChatGPT (GPT-5.6 Terra), blue**, against
 **Gemini (Gemini 3.8 Flash), red**. This public free edition continues to use
 local admirals, with no provider connection or code required. Squadron markers

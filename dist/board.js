@@ -7,7 +7,7 @@
 // reach live in simulation.js so the battle and the board agree. This module is
 // the readable view: pieces, fog, ghosts, legal moves, text render and roster.
 // Rank 1 is red's home edge, rank 14 blue's. Files run a-n west to east.
-import {WORLD,RULES,TYPES,WEIGHTS,shipWorth,reachOf} from './simulation.js';
+import {WORLD,RULES,TYPES,WEIGHTS,shipWorth,reachOf,legalOrderSquare} from './simulation.js';
 import {BOARD as GRID,FILE_NAMES,squareOf as gridSquareOf,parseSquare,centreOf,allSquares,reachableSquares as gridReachable,nearestReachable,squareDistance,KIND_LETTERS,KIND_NAMES,renderPieces} from './grid.js';
 export {WEIGHTS,shipWorth,parseSquare,centreOf,allSquares,nearestReachable,squareDistance};
 export const BOARD=Object.freeze({files:GRID.files,ranks:GRID.ranks,get cellWidth(){return GRID.square;},get cellHeight(){return GRID.square;}});
@@ -36,10 +36,10 @@ export function pieces(battle){return battle.formations.map(f=>pieceOf(battle,f.
 // The board as one side sees it: own pieces, enemy pieces in contact (partial centres when only
 // part is seen), and ghosts where enemies were last seen. Same data the admiral receives.
 export function boardView(battle,side){const snap=battle.decisionSnapshot(side);return Object.freeze({version:2,board:{files:GRID.files,ranks:GRID.ranks,square:GRID.square},time:snap.time,side,own:Object.freeze(snap.pieces.map(p=>Object.freeze({...p,letter:KINDS[p.kind].letter}))),enemy:Object.freeze(snap.enemies.map(p=>Object.freeze({...p,letter:KINDS[p.kind].letter}))),ghosts:Object.freeze(snap.ghosts)});}
-export function moveOrder(battle,formationId,square){const piece=pieceOf(battle,formationId);if(!piece)throw new Error(`No piece ${formationId} on the board.`);const target=parseSquare(typeof square==='string'?square:square.name),centre=centreOf(target);return Object.freeze({piece:piece.id,from:piece.square,to:target.name,goal:{x:Math.round(centre.x),y:Math.round(centre.y)},legal:reachableSquares(piece.square,piece.kind).includes(target.name)});}
+export function moveOrder(battle,formationId,square){const piece=pieceOf(battle,formationId);if(!piece)throw new Error(`No piece ${formationId} on the board.`);const target=parseSquare(typeof square==='string'?square:square.name),centre=centreOf(target);return Object.freeze({piece:piece.id,from:piece.square,to:target.name,goal:{x:Math.round(centre.x),y:Math.round(centre.y)},legal:legalOrderSquare(piece,target.name)===target.name});}
 // Apply a move by giving the formation an admiral goal. Ships are never repositioned here.
 export function applyMove(battle,order){const formation=battle.formations[order.piece];if(!formation)throw new Error(`No piece ${order.piece} on the board.`);formation.orderGoal={x:order.goal.x,y:order.goal.y};formation.orderSquare=order.to;formation.goal={x:order.goal.x,y:order.goal.y};return order;}
-export function legalMoves(battle,side){return boardView(battle,side).own.map(piece=>({piece:piece.id,kind:piece.kind,at:piece.square,reach:piece.reach,squares:reachableSquares(piece.square,piece.kind)}));}
+export function legalMoves(battle,side){return boardView(battle,side).own.map(piece=>({piece:piece.id,kind:piece.kind,at:piece.square,reach:piece.reach,squares:reachableSquares(piece.square,piece.kind).filter(to=>legalOrderSquare(piece,to)===to)}));}
 // The board as text. Rank 14 (blue home) at the top; blue upper case, red lower case; `?` marks a ghost.
 export function render(battle,side=null){
  const list=side===null?pieces(battle):(v=>[...v.own,...v.enemy])(boardView(battle,side)),ghosts=side===null?[]:boardView(battle,side).ghosts;

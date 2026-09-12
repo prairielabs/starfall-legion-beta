@@ -5,13 +5,15 @@ import {BOARD,squareOf,parseSquare,isSquare,centreOf,nearestReachable,squareDist
 export const WORLD=Object.freeze({width:14000,height:14000});
 const FIGHTER_SPEED=245;
 // cycle: each admiral's play clock between orders; thinkCeiling: the longest an admiral may think before standing orders.
-export const RULES=Object.freeze({lives:3,playerSpeed:FIGHTER_SPEED*1.1,acceleration:7,formationSpeed:FIGHTER_SPEED,cruiseSpeed:205,firstRecall:30,regroup:2.5,orderWindow:10,cycle:30,thinkCeiling:16,maxOrdersPerSide:10,recallCutoff:300,battleDuration:300,boltSpeed:960,boltRange:1800,shieldDelay:5,railFirst:30,railPeriod:30,railWarning:3,railActive:1,railWidth:44,railDamage:36,artilleryStandOff:700,artilleryAssaultAt:75,fightersPerExchange:2,rendezvousAt:170,launchSpacing:.45});
-export const TYPES=Object.freeze({fighter:{hp:54,speed:FIGHTER_SPEED,turn:8.8,radius:12,vision:1000,reload:.75,damage:12},scout:{hp:30,speed:430,turn:3.5,radius:14,vision:1900,reload:1.6,damage:8},cavalry:{hp:72,speed:365,turn:1.35,radius:17,vision:1150,reload:2.3,damage:16},artillery:{hp:1100,speed:68,turn:0,radius:76,vision:1450,reload:1.35,damage:2},cargo:{hp:460,speed:72,turn:1.4,radius:38,vision:900,reload:1.1,damage:6},command:{hp:3600,speed:60,turn:0,radius:74,vision:1500,reload:1,damage:22},escort:{hp:80,speed:330,turn:1.5,radius:17,vision:1150,reload:2.1,damage:14}});
+export const RULES=Object.freeze({lives:3,playerSpeed:FIGHTER_SPEED*1.1,acceleration:7,formationSpeed:FIGHTER_SPEED,cruiseSpeed:205,firstRecall:30,regroup:2.5,orderWindow:10,cycle:30,thinkCeiling:16,maxOrdersPerSide:10,recallCutoff:300,battleDuration:300,boltSpeed:960,boltRange:1800,shieldDelay:5,railFirst:30,railPeriod:30,railWarning:3,railActive:1,railWidth:44,railDamage:36,artilleryStandOff:700,artilleryAssaultAt:75,fightersPerExchange:2,rendezvousAt:70,launchSpacing:.45});
+export const TYPES=Object.freeze({fighter:{hp:54,speed:FIGHTER_SPEED,turn:8.8,radius:12,vision:1000,reload:.75,damage:12},scout:{hp:30,speed:430,turn:3.5,radius:14,vision:1900,reload:1.6,damage:8},cavalry:{hp:72,speed:365,turn:1.35,radius:17,vision:1150,reload:2.3,damage:16},artillery:{hp:1100,speed:160,turn:0,radius:76,vision:1450,reload:1.35,damage:2},cargo:{hp:460,speed:150,turn:1.4,radius:38,vision:900,reload:1.1,damage:6},command:{hp:3600,speed:140,turn:0,radius:74,vision:1500,reload:1,damage:22},escort:{hp:80,speed:330,turn:1.5,radius:17,vision:1150,reload:2.1,damage:14}});
 // How much one ship of each type is worth in a piece's remaining strength. Swarm ships count once;
 // big single hulls count by significance scaled by remaining hull, so a burning command ship reads as weaker.
 export const WEIGHTS=Object.freeze({fighter:1,scout:1.5,cavalry:2,escort:3,cargo:4,artillery:10,command:30});
 const BIG_HULLS=new Set(['artillery','cargo','command']);
 export function shipWorth(s){const w=WEIGHTS[s.kind]??1;if(!BIG_HULLS.has(s.kind))return w;return w*clamp(s.hp/(s.maxHp||s.hp||1),0,1);}
+export function capitalGoal(point,side){return{x:clamp(point.x,400,WORLD.width-400),y:side?clamp(point.y,400,WORLD.height/2-500):clamp(point.y,WORLD.height/2+500,WORLD.height-400)};}
+export function legalOrderSquare(piece,to){const bounded=BIG_HULLS.has(piece.kind)?squareOf(capitalGoal(centreOf(to),piece.side).x,capitalGoal(centreOf(to),piece.side).y).name:to;return nearestReachable(piece.square,piece.reach,bounded);}
 export function reachOf(kind){return Math.max(1,Math.floor(TYPES[kind].speed*RULES.cycle/BOARD.square));}
 const KIND_LABELS={fighter:'SQUADRON',scout:'SCOUTS',artillery:'BATTERY',cavalry:'CAVALRY',cargo:'CONVOY',command:'COMMAND'};
 // Pieces are anonymous: only the admirals are named. Labels identify a formation's kind and lane, nothing more.
@@ -52,7 +54,7 @@ function cargoWaypoints(n,side){const x=[.08,.32,.68,.92][n-10]*WORLD.width,oute
 export function frontPoint(kind,n,side,time){
  const cargo=kind==='cargo',lane=cargo?n-10:n-6,progress=clamp(time/RULES.rendezvousAt,0,1);
  const startX=(cargo?[.08,.32,.68,.92]:[.22,.5,.78])[lane]*WORLD.width,startY=(side?(cargo?.1:.09):(cargo?.9:.91))*WORLD.height;
- const endX=WORLD.width/2+(cargo?(lane-1.5)*360:(lane-1)*220),endY=WORLD.height/2+(side?-1:1)*(cargo?410:180);
+ const endX=WORLD.width/2+(cargo?(lane-1.5)*360:(lane-1)*220),endY=WORLD.height/2+(side?-1:1)*(cargo?750:500);
  return{x:startX+(endX-startX)*progress,y:startY+(endY-startY)*progress};
 }
 function intercept(s,t,speed){const dx=t.x-s.x,dy=t.y-s.y,vx=t.vx||0,vy=t.vy||0,a=vx*vx+vy*vy-speed*speed,b=2*(dx*vx+dy*vy),c=dx*dx+dy*dy,disc=b*b-4*a*c;let time=Math.sqrt(c)/speed;if(disc>=0&&Math.abs(a)>1e-6){const roots=[(-b-Math.sqrt(disc))/(2*a),(-b+Math.sqrt(disc))/(2*a)].filter(t=>t>0);if(roots.length)time=Math.min(...roots);}return Math.atan2(dy+vy*time,dx+vx*time);}
@@ -65,7 +67,7 @@ export class Battle{
    const dir=side?1:-1,kind=n<4?'fighter':n<6?'scout':n<9?'artillery':'cavalry';
    // Keep the broad Battle-of-Britain echelons, with their opening lines
    // positioned for first fighter fire at ten seconds of normal flight.
-   const x=(kind==='fighter'?[.2,.4,.6,.8][n]:kind==='scout'?(n===4?.05:.95):kind==='artillery'?[.22,.5,.78][n-6]:.34)*WORLD.width;
+   const x=(kind==='fighter'?[.32,.44,.56,.68][n]:kind==='scout'?(n===4?.05:.95):kind==='artillery'?[.22,.5,.78][n-6]:.34)*WORLD.width;
    const blueY=kind==='fighter'?(n%2?.71:.705):kind==='artillery'?.91:kind==='scout'?.62:.73;
    const y=(side?1-blueY:blueY)*WORLD.height;
    const f={id:side*10+n,side,n,kind,name:formationName(side,kind,n),x,y,a:dir*Math.PI/2,count:0,leader:null,state:kind==='scout'?'patrol':'travel',target:(1-side)*10+n,goal:{x,y:WORLD.height/2},recall:null,drainAt:0,role:'opening',patrolLeg:side?2:0,orderGoal:null,orderSquare:null,finishing:null};
@@ -247,7 +249,7 @@ export class Battle{
   for(const p of snapshot.pieces){const f=this.formations[p.id];if(!f||f.side!==side||!f.count)continue;
    let to=given.get(p.id)??null;
    if(to===null){if(f.kind==='artillery'||f.kind==='cargo'||f.kind==='command'){f.orderGoal=null;f.orderSquare=null;continue;}to=p.square;}
-   const legal=nearestReachable(p.square,p.reach,to);if(legal!==to){clamped++;to=legal;}
+   const legal=legalOrderSquare(p,to);if(legal!==to){clamped++;to=legal;}
    const c=centreOf(to);f.orderSquare=to;f.orderGoal={x:Math.round(c.x),y:Math.round(c.y)};f.decision={to};
    if(f.finishing!=null){const e=this.formations[f.finishing];if(!e?.count||squareDistance(to,this.pieceState(e).square)>2)f.finishing=null;}
    if(f.kind==='fighter'||f.kind==='cavalry')f.target=null;
@@ -324,7 +326,7 @@ export class Battle{
   if(f.kind==='command'){this.moveCommand(f,dt);return;}
   if(f.kind==='cargo'){
    // Convoys follow the shared rendezvous clock unless the admiral has sent them somewhere.
-   f.goal=f.orderGoal||frontPoint('cargo',f.n,f.side,this.time);
+   f.goal=capitalGoal(f.orderGoal||frontPoint('cargo',f.n,f.side,this.time),f.side);
    const dx=f.goal.x-f.x,dy=f.goal.y-f.y,d=Math.hypot(dx,dy),travel=Math.min(d,TYPES.cargo.speed*dt);
    if(d>.01){f.a=Math.atan2(dy,dx);f.x+=dx/d*travel;f.y+=dy/d*travel;}
    f.state=this.closing?'charge':'convoy';
@@ -347,14 +349,14 @@ export class Battle{
    if(this.phase==='final'&&(f.kind==='cavalry'||f.kind==='fighter')&&!enemy?.count){const seen=this.contacts[f.side].map(id=>this.ships[id]).filter(s=>s.side!==f.side);seen.sort((a,b)=>distance(a,f)-distance(b,f));if(seen.length){f.target=seen[0].formation;f.goal={x:seen[0].x,y:seen[0].y};}else f.goal={x:WORLD.width/2+Math.sin(this.time/18+f.n)*2300,y:WORLD.height/2+Math.cos(this.time/23+f.n)*2300};}
    if(!artilleryAssault&&f.kind==='cavalry'&&this.time>65&&this.time>= (f.chooseAt||0)){f.chooseAt=this.time+38;const options=this.formations.filter(t=>t.kind==='fighter'&&t.count&&this.contacts[f.side].some(id=>this.ships[id].formation===t.id));options.sort((a,b)=>a.count-b.count||distance(a,f)-distance(b,f));const target=options.find(t=>t.side!==f.side)||options[0];if(target){f.target=target.id;f.goal={x:target.cx,y:target.cy};}}
   }
-  const d=distance(f,f.goal);f.a=Math.atan2(f.goal.y-f.y,f.goal.x-f.x);f.state=d<450?'combat':'travel';if(d>350){f.x+=Math.cos(f.a)*Math.min(d,RULES.formationSpeed*dt);f.y+=Math.sin(f.a)*Math.min(d,RULES.formationSpeed*dt);}
+  const d=distance(f,f.goal);f.a=Math.atan2(f.goal.y-f.y,f.goal.x-f.x);f.state=d<450?'combat':'travel';if(d>350){f.x+=Math.cos(f.a)*Math.min(d,TYPES[f.kind].speed*dt);f.y+=Math.sin(f.a)*Math.min(d,TYPES[f.kind].speed*dt);}
  }
  // The command ship holds its home station, moves where its admiral sends it, and closes toward
  // the centre for the final engagement. Its hull drives itself in command(); the formation
  // follows the hull so the escort ring stays with it.
  moveCommand(f,dt){
   const hull=this.commandShip(f.side);
-  f.dest=f.orderGoal||(this.closing?{x:WORLD.width/2,y:WORLD.height/2+(f.side?-1:1)*1100}:f.home||{x:f.x,y:f.y});
+  f.dest=capitalGoal(f.orderGoal||{x:WORLD.width/2,y:WORLD.height/2+(f.side?-1:1)*1100},f.side);
   if(hull?.alive){f.x=hull.x;f.y=hull.y;}else if(Number.isFinite(f.cx)){f.x=f.cx;f.y=f.cy;}
   f.a=f.side?Math.PI/2:-Math.PI/2;f.goal=f.dest;f.state=this.closing?'charge':f.orderGoal?'travel':'hold';
  }
@@ -432,8 +434,8 @@ export class Battle{
  }
  artillery(s,dt,grid){
   const dir=s.side?1:-1;
-  const destination=frontPoint('artillery',this.formations[s.formation].n,s.side,this.time),dx=destination.x-s.x,dy=destination.y-s.y,d=Math.hypot(dx,dy),travel=Math.min(d,TYPES.artillery.speed*dt);
-  s.vx=d?dx/d*travel/dt:0;s.vy=d?dy/d*travel/dt:0;s.x+=s.vx*dt;s.y+=s.vy*dt;s.arrived=this.time>=RULES.rendezvousAt&&d<3;
+  const destination=capitalGoal(this.formations[s.formation].orderGoal||frontPoint('artillery',this.formations[s.formation].n,s.side,this.time),s.side),dx=destination.x-s.x,dy=destination.y-s.y,d=Math.hypot(dx,dy),travel=Math.min(d,TYPES.artillery.speed*dt);
+  s.vx=d?dx/d*travel/dt:0;s.vy=d?dy/d*travel/dt:0;s.x+=s.vx*dt;s.y+=s.vy*dt;s.y=s.side?Math.min(s.y,WORLD.height/2-250):Math.max(s.y,WORLD.height/2+250);s.arrived=this.time>=RULES.rendezvousAt&&d<3;
 
   if(this.time>=s.railNext+1){s.railNext+=RULES.railPeriod;s.railHits=[];s.railAim=null;}
   if(this.time>=s.railNext-3&&!Number.isFinite(s.railAim)){const cluster=this.clusterTarget(s,grid,3600);s.railAim=cluster?Math.atan2(cluster.y-s.y,cluster.x-s.x):s.a;}
@@ -452,14 +454,14 @@ export class Battle{
  cargo(s,dt,grid){
   const f=this.formations[s.formation];let target=this.ships[s.target];
   if(this.tick%12===s.id%12||!target?.alive||distance(s,target)>TYPES.cargo.vision){target=this.targetFor(s,grid);s.target=target?.id??null;}
-  const slot=formationPoint(f,s.slot),lead=100;this.steer(s,slot.x+Math.cos(f.a)*lead,slot.y+Math.sin(f.a)*lead,dt,clamp(distance(s,slot)*.8,20,TYPES.cargo.speed),grid);s.x+=s.vx*dt;s.y+=s.vy*dt;s.x=clamp(s.x,10,WORLD.width-10);s.y=clamp(s.y,10,WORLD.height-10);
+  const slot=formationPoint(f,s.slot),lead=100;this.steer(s,slot.x+Math.cos(f.a)*lead,slot.y+Math.sin(f.a)*lead,dt,clamp(distance(s,slot)*.8,20,TYPES.cargo.speed),grid);s.x+=s.vx*dt;s.y+=s.vy*dt;s.x=clamp(s.x,10,WORLD.width-10);s.y=s.side?clamp(s.y,10,WORLD.height/2-250):clamp(s.y,WORLD.height/2+250,WORLD.height-10);
   for(const turret of s.turrets){turret.flash=Math.max(0,turret.flash-dt);turret.cooldown-=dt;if(!target||turret.cooldown>0||distance(s,target)>760)continue;const a=intercept(this.turretPoint(s,turret),target,760);this.fire(s,a+(this.random()-.5)*.08,{turret,damage:TYPES.cargo.damage,speed:760,light:true});}
  }
  // The command ship: a slow capital hull with eight light mounts and a spinal cannon that fires
  // three-round bursts of slower, heavier rounds. Its destination is set by moveCommand.
  command(s,dt,grid){
   const f=this.formations[s.formation],dest=f.dest||f.home||s,dx=dest.x-s.x,dy=dest.y-s.y,d=Math.hypot(dx,dy),travel=Math.min(d,TYPES.command.speed*dt);
-  s.vx=d>1?dx/d*travel/dt:0;s.vy=d>1?dy/d*travel/dt:0;s.x=clamp(s.x+s.vx*dt,400,WORLD.width-400);s.y=clamp(s.y+s.vy*dt,400,WORLD.height-400);s.a=s.side?Math.PI/2:-Math.PI/2;
+  s.vx=d>1?dx/d*travel/dt:0;s.vy=d>1?dy/d*travel/dt:0;s.x=clamp(s.x+s.vx*dt,400,WORLD.width-400);s.y=s.side?clamp(s.y+s.vy*dt,400,WORLD.height/2-250):clamp(s.y+s.vy*dt,WORLD.height/2+250,WORLD.height-400);s.a=s.side?Math.PI/2:-Math.PI/2;
   for(const turret of s.turrets)turret.flash=Math.max(0,turret.flash-dt);
   const enemies=grid.query(s.x,s.y,1000).filter(t=>t.alive&&t.side!==s.side&&distance(s,t)<1000);if(!enemies.length)return;
   enemies.sort((a,b)=>distance(s,a)-distance(s,b));const cluster=this.clusterTarget(s,grid,1000)||enemies[0];

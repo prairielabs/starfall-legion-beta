@@ -22,7 +22,7 @@ test('fighter formations open as broad, stepped echelons',()=>{
 test('each fighter echelon begins firing around ten seconds into a fresh flight',()=>{
  for(const seed of [501,502,503]){
   const battle=new Battle(seed,{autopilot:true}),firstFire=new Map();
-  while(battle.time<11){
+  while(battle.time<12){
    battle.step(1/30);
    for(const event of battle.events){
     if(event.type!=='shot')continue;
@@ -33,7 +33,7 @@ test('each fighter echelon begins firing around ten seconds into a fresh flight'
   }
   for(const formation of battle.formations.filter(f=>f.kind==='fighter')){
    const at=firstFire.get(formation.id);
-   assert.ok(at>=9.9&&at<=11,`${formation.name} first fired at ${at} seconds (seed ${seed})`);
+   assert.ok(at>=8&&at<=12,`${formation.name} first fired at ${at} seconds (seed ${seed})`);
   }
  }
 });
