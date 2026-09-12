@@ -14,7 +14,7 @@ test('spectator cycle follows living friendly ships and returns to the map',()=>
 });
 
 test('squadron markers are more distinct without obscuring ships',()=>{
- assert.match(game,/squadMember\(s\)\?3\.5:1\.5/);
+ assert.match(game,/squadMember\(s\)\?2:1\.5/);
  assert.match(game,/line\(p\.x-r,p\.y-r,p\.x-r\+4,p\.y-r,C\.squad\)/);
 });
 

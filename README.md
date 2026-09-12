@@ -36,7 +36,12 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 ## Commander battles
 
-Every battle is now a chess match between two admirals played out by 424
+The hosted paid edition now pits **ChatGPT (GPT-5.6 Terra), blue**, against
+**Gemini (Gemini 3.8 Flash), red**. This public free edition continues to use
+local admirals, with no provider connection or code required. Squadron markers
+are compact green dots on the minimap and sector map.
+
+Every battle is now a chess match between two admirals played out by 464
 ships. Each side has a command ship, a broad flagship with eight light mounts
 and a spinal cannon that fires three-round bursts, guarded by an elite escort
 of ten double-shot ships. The game ends the moment a command ship dies.
