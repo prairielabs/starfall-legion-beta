@@ -5,8 +5,8 @@ import {BOARD,squareOf,parseSquare,isSquare,centreOf,nearestReachable,squareDist
 export const WORLD=Object.freeze({width:14000,height:14000});
 const FIGHTER_SPEED=245;
 // cycle: each admiral's play clock between orders; thinkCeiling: the longest an admiral may think before standing orders.
-export const RULES=Object.freeze({lives:3,playerSpeed:FIGHTER_SPEED,acceleration:7,formationSpeed:FIGHTER_SPEED,cruiseSpeed:205,firstRecall:30,regroup:2.5,orderWindow:10,cycle:30,thinkCeiling:16,maxOrdersPerSide:10,recallCutoff:300,battleDuration:300,boltSpeed:960,boltRange:1800,shieldDelay:5,railFirst:30,railPeriod:30,railWarning:3,railActive:1,railWidth:44,railDamage:36,artilleryStandOff:700,artilleryAssaultAt:75,fightersPerExchange:2,rendezvousAt:70,launchSpacing:.45});
-export const TYPES=Object.freeze({fighter:{hp:54,speed:FIGHTER_SPEED,turn:8.8,radius:12,vision:1000,reload:.75,damage:12},scout:{hp:30,speed:430,turn:3.5,radius:14,vision:1900,reload:1.6,damage:8},cavalry:{hp:72,speed:365,turn:1.35,radius:17,vision:1150,reload:2.3,damage:16},artillery:{hp:1320,speed:160,turn:0,radius:76,vision:1450,reload:1.35,damage:2},cargo:{hp:552,speed:150,turn:1.4,radius:38,vision:900,reload:1.1,damage:6},command:{hp:4320,speed:140,turn:0,radius:74,vision:1500,reload:1,damage:22},escort:{hp:80,speed:330,turn:1.5,radius:17,vision:1150,reload:2.1,damage:14}});
+export const RULES=Object.freeze({lives:3,playerSpeed:FIGHTER_SPEED,acceleration:7,formationSpeed:FIGHTER_SPEED,cruiseSpeed:205,firstRecall:30,regroup:2.5,orderWindow:10,cycle:30,thinkCeiling:16,maxOrdersPerSide:10,recallCutoff:300,battleDuration:300,boltSpeed:960,boltRange:1800,shieldDelay:5,railFirst:30,railPeriod:30,railWarning:3,railActive:1,railWidth:44,railDamage:36,artilleryStandOff:700,artilleryAssaultAt:75,fightersPerExchange:2,rendezvousAt:55,launchSpacing:.45});
+export const TYPES=Object.freeze({fighter:{hp:54,speed:FIGHTER_SPEED,turn:8.8,radius:12,vision:1000,reload:.75,damage:12},scout:{hp:30,speed:430,turn:3.5,radius:14,vision:1900,reload:1.6,damage:8},cavalry:{hp:72,speed:365,turn:1.35,radius:17,vision:1150,reload:2.3,damage:16},artillery:{hp:1320,speed:195,turn:0,radius:76,vision:1450,reload:1.35,damage:2},cargo:{hp:552,speed:185,turn:1.4,radius:38,vision:900,reload:1.1,damage:6},command:{hp:4320,speed:180,turn:0,radius:74,vision:1500,reload:1,damage:22},escort:{hp:80,speed:330,turn:1.5,radius:17,vision:1150,reload:2.1,damage:14}});
 // How much one ship of each type is worth in a piece's remaining strength. Swarm ships count once;
 // big single hulls count by significance scaled by remaining hull, so a burning command ship reads as weaker.
 export const WEIGHTS=Object.freeze({fighter:1,scout:1.5,cavalry:2,escort:3,cargo:4,artillery:10,command:30});
@@ -108,7 +108,7 @@ export class Battle{
  addCavalryReserve(){
   for(let side=0;side<2;side++){
    const id=32+side;if(this.formations[id])continue;
-   const dir=side?1:-1,x=WORLD.width*.5,y=WORLD.height*(side?.3:.7);
+   const dir=side?1:-1,x=WORLD.width*.5,y=WORLD.height*(side?.04:.96);
    const f={id,side,n:16,kind:'cavalry',name:formationName(side,'cavalry',16),x,y,a:dir*Math.PI/2,count:0,leader:null,state:'travel',target:32+(1-side),goal:{x,y:WORLD.height/2},recall:null,drainAt:0,role:'opening',patrolLeg:0,orderGoal:null,orderSquare:null,finishing:null};
    this.formations.push(f);
    for(let slot=0;slot<10;slot++){const stats=TYPES.cavalry;this.ships.push({id:this.serial++,side,formation:id,slot,kind:'cavalry',player:false,...formationPoint(f,slot),a:f.a,vx:0,vy:dir*stats.speed,hp:this.result?0:stats.hp,maxHp:stats.hp,shield:2,lastHit:-10,alive:!this.result,radius:stats.radius,cooldown:this.random(),target:null,phase:this.random()*Math.PI*2,flash:0,boost:1,outside:0,tagged:false});}
