@@ -121,3 +121,5 @@ h1,h2,.final-score{font-family:Arcade,monospace;font-weight:400}h1{font-size:cla
 @media(max-width:600px){.admiral-comment{width:calc(50% - 19px);font-size:7px;line-height:1.8}.admiral-comment strong{font-size:7px}}
 
 @media(max-width:600px){.admiral-comment{top:215px}}
+
+.admiral-logo{width:26px;height:26px;object-fit:contain;display:inline-block;margin-right:9px;border-radius:4px;vertical-align:middle}@media(max-width:600px){.admiral-logo{width:16px;height:16px;margin-right:4px}}

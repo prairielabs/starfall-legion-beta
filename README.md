@@ -51,7 +51,7 @@ The hosted paid edition now pits **ChatGPT (GPT-5.6 Terra), blue**, against
 local admirals, with no provider connection or code required. Squadron markers
 are compact green dots on the minimap and sector map.
 
-Every battle is now a chess match between two admirals played out by 396
+Every battle is now a chess match between two admirals played out by 356
 ships. Each side has a command ship, a broad flagship with eight light mounts
 and a spinal cannon that fires three-round bursts, guarded by an elite escort
 of ten double-shot ships. The game ends the moment a command ship dies.
@@ -148,6 +148,8 @@ effects and music are CC0; exact sources and transformations are documented in
 
 Created by [Prairie Labs](https://prairielabs.ai).
 
-The fleet-charge update halves cavalry to 30 ships per side, tightens squadron cohesion, and opens with a 3.5-second flight from the friendly formations into the moving pilot. Hosted model radio uses the arcade font and direct rival-addressed orders; the free edition continues to use local commanders. Existing saved fleets retain their ships; the smaller cavalry roster applies to fresh battles.
+The fleet-charge update halves cavalry to 10 ships per side, tightens squadron cohesion, and opens with a 3.5-second flight from the friendly formations into the moving pilot. Hosted model radio uses the arcade font and direct rival-addressed orders; the free edition continues to use local commanders. Existing saved fleets retain their ships; the smaller cavalry roster applies to fresh battles.
 
-The pilot now starts in the far-left fighter wing, cruising until movement or fire takes control. Entry zoom runs at display cadence and blends into the regular follow camera; colored arcade stars stay visible at every zoom.
+The pilot now starts in the middle fighter wing, cruising until movement or fire takes control. Entry zoom runs at display cadence and blends into the regular follow camera; colored arcade stars stay visible at every zoom.
+
+One central cavalry wing remains per side. Capital health increases 20%; the command ship advances behind the battery line and escorts stay near their hulls. Battles end by 300 seconds of simulation time. Supplied ChatGPT and Gemini PNGs are rendered directly on hulls and the HUD.
