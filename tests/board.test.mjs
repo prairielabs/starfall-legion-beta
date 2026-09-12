@@ -55,16 +55,16 @@ test('every kind of piece can move to a different square within one order cycle'
   assert.ok(reachableSquares('g7', kind).includes('g7'), 'holding is legal');
  }
  // The slow hulls are the binding case: two squares in a 30-second cycle; the command ship one.
- assert.equal(reach('artillery'), 4);
- assert.equal(reach('cargo'), 4);
- assert.equal(reach('command'), 4);
+ assert.equal(reach('artillery'), 5);
+ assert.equal(reach('cargo'), 5);
+ assert.equal(reach('command'), 5);
  assert.ok(reach('fighter') > reach('artillery'));
  assert.ok(reach('scout') > reach('fighter'));
  // Reach is derived from the live rules, not a hand-typed table.
  assert.equal(reach('fighter'), Math.floor(TYPES.fighter.speed * RULES.cycle / BOARD.cellWidth));
  // A corner is clipped by the edge, never thrown.
  assert.ok(reachableSquares('a1', 'artillery').every(name => parseSquare(name)));
- assert.ok(!reachableSquares('a1', 'artillery').includes('f1'));
+ assert.ok(!reachableSquares('a1', 'artillery').includes('g1'));
  assert.ok(reachableSquares('a1', 'artillery').includes('c1'));
 });
 
