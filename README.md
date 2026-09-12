@@ -155,3 +155,5 @@ The pilot now starts in the middle fighter wing, cruising until movement or fire
 One central cavalry wing remains per side. Capital health increases 20%; the command ship advances behind the battery line and escorts stay near their hulls. Battles end by 300 seconds of simulation time. Supplied ChatGPT and Gemini PNGs are rendered directly on hulls and the HUD.
 
 Launch reminds the pilot to stay with their squadron. Cavalry starts at the rear and joins after the fighters; capital approach now uses a 55-second rendezvous. Commander radio lights up on requests and keeps replies visible until the next transmission; local orders are labeled explicitly.
+
+Background stars are plain, irregularly scattered white dots. Hosted play refreshes stale saved provider connections from the same activation code before any pulse debit; unsupported old cards require re-entry with a current OpenRouter code.

@@ -15,7 +15,7 @@ const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
 const fogCanvas=document.createElement('canvas');fogCanvas.width=fogCanvas.height=360;const fogContext=fogCanvas.getContext('2d',{alpha:false});
 let fogAt=-1,contactSource=null,visibleIds=new Set(),renderFriends=[],friendsAt=-1;
 let last=performance.now(),acc=0,hudAt=0,saveAt=0,noticeUntil=0,particles=[],effects=[],rewards=[],muted=false,shake=0,railPunch=0,recoil=0,hitConfirm=0,killChain=0,lastKillAt=-99,requestGeneration=0,lastShotSound=0,busy=false,scoreRecord=null,lastPadButtons=[],perf={frames:0,frameMs:[],stepMs:[],drawMs:[]};
-const stars=Array.from({length:4000},(_,i)=>({x:(i*7919)%WORLD.width,y:(i*3571)%WORLD.height,b:i%13}));
+const stars=Array.from({length:600},()=>({x:Math.random(),y:Math.random(),alpha:.3+Math.random()*.7}));
 function resize(){const rect=$('cabinet').getBoundingClientRect();w=canvas.width=Math.ceil(rect.width/1.6);h=canvas.height=Math.ceil(rect.height/1.6);ctx.imageSmoothingEnabled=false;const fit=Math.min(rect.width/320,rect.height/256);$('title-stage').style.setProperty('--title-scale',fit>=2?Math.floor(fit):fit);}
 new ResizeObserver(resize).observe($('cabinet'));resize();
 const baseZoom=()=>w<h?w/540:Math.min(w/820,h/510);
@@ -199,8 +199,7 @@ function draw(){renderTime=battle?Math.max(0,battle.time-(1-renderAlpha)*FIXED_S
  zoom=map?Math.min((w-36)/WORLD.width,(h-155)/WORLD.height):baseZoom()*zoomFactor;
  if(map)camera={x:WORLD.width/2,y:WORLD.height/2};
  if(map){const edge=screen(0,0);ctx.drawImage(fogCanvas,edge.x,edge.y,WORLD.width*zoom,WORLD.height*zoom);}
- // Screen-density stars share the arcade title palette, with gentle camera parallax.
- for(let i=0;i<Math.ceil(w*h/1800);i++){const layer=1+i%3,spanX=w+20,spanY=h+20,x=(((i*73+17)*3-camera.x*.012*layer)%spanX+spanX)%spanX-10,y=(((i*47+9)*3-camera.y*.012*layer)%spanY+spanY)%spanY-10;ctx.fillStyle=['#3840b8','#4bdcff','#ff3838','#ffe040','#fff'][i%5];ctx.globalAlpha=.5+(i%3)*.2;ctx.fillRect(x,y,1,1);}ctx.globalAlpha=1;
+ for(const star of stars.slice(0,Math.ceil(w*h/1800))){const x=((star.x*w-camera.x*.015)%w+w)%w,y=((star.y*h-camera.y*.015)%h+h)%h;ctx.fillStyle='#fff';ctx.globalAlpha=star.alpha;ctx.fillRect(x,y,1,1);}ctx.globalAlpha=1;
  const edge=screen(0,0);ctx.strokeStyle='#3b596b';ctx.setLineDash([4,8]);ctx.strokeRect(edge.x,edge.y,WORLD.width*zoom,WORLD.width*zoom);ctx.setLineDash([]);
  ctx.save();if(map){ctx.beginPath();ctx.rect(edge.x,edge.y,WORLD.width*zoom,WORLD.width*zoom);ctx.clip();}if(shake>.1&&!map&&!reducedMotion.matches)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
  for(const s of battle.ships){const rail=battle.railState(s);if(!rail)continue;const q=pose(s),p=screen(q.x,q.y),end=screen(q.x+Math.cos(rail.a)*13000,q.y+Math.sin(rail.a)*13000),color=s.side?C.red:C.blue;
