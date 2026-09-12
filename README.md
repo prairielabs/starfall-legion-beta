@@ -34,6 +34,24 @@ Then open [http://localhost:8080](http://localhost:8080).
 - `M`: mute
 - `P` or Escape: pause
 
+## Commander battles
+
+Every battle is now a chess match between two admirals played out by 424
+ships. Each side has a command ship, a broad flagship with eight light mounts
+and a spinal cannon that fires three-round bursts, guarded by an elite escort
+of ten double-shot ships. The game ends the moment a command ship dies.
+
+The admirals never see individual ships. They see pieces on a 14 x 14 board
+(`dist/grid.js`, `dist/board.js`): fighter squadrons, scout pairs, artillery
+batteries, cavalry, merchant convoys and the command ships, each with its
+weighted remaining strength. Every 30 seconds plus the time the admiral takes
+to think, it sends each piece to a square within its reach; while it thinks,
+its fighters recall to their squadrons, batteries, convoys and escort ring.
+A piece finishing a broken enemy piece stays on the kill. In this free
+edition both admirals are local standing-orders players; the hosted beta at
+starfalllegion.com runs a language model on each side and shows their names on
+the scorebar.
+
 ## Current beta behavior
 
 - The opening fighter engagement begins at roughly ten seconds.
@@ -41,7 +59,7 @@ Then open [http://localhost:8080](http://localhost:8080).
   brighter arrows mean more contacts in that direction.
 - Fighters retain formation-level objectives but select and retaliate against
   opponents individually, producing distributed dogfights.
-- Recalls rally slightly toward the front and regroup for 2.5 seconds.
+- Recalls last while the admiral thinks, then regroup for 2.5 seconds on the squadron centre.
 - Green corner ticks and map dots identify the player's squadron.
 - When the pilot's lives are exhausted, the fight continues in spectator mode.
 
@@ -50,7 +68,9 @@ Then open [http://localhost:8080](http://localhost:8080).
 ```text
 dist/
   index.html          Browser entry point
-  simulation.js       Deterministic 30 Hz battle engine
+  simulation.js       Deterministic 30 Hz battle engine, command ships and admirals' clocks
+  grid.js             The 14 x 14 strategic grid
+  board.js            Pieces, fog, ghosts, legal moves and a text board
   game.js             Canvas renderer, controls, HUD, camera
   arcade.js           Free-play session and local fleet decisions
   render-timing.js    Display interpolation and frame metering

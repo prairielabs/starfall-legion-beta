@@ -5,7 +5,7 @@ import {Battle,Grid} from '../dist/simulation.js';
 test('a struck moving fighter reacts individually and returns fire on its attacker',()=>{
  const battle=new Battle(611),pilot=battle.player,defender=battle.ships.find(ship=>ship.side===1&&ship.kind==='fighter'),formation=battle.formations[defender.formation],wingmate=battle.ships.find(ship=>ship.side===1&&ship.kind==='fighter'&&ship.formation===defender.formation&&ship!==defender);
  const guards=[0,1].map(side=>battle.ships.find(ship=>ship.side===side&&ship.kind==='artillery'));
- for(const ship of battle.ships)ship.alive=ship===pilot||ship===defender||guards.includes(ship);
+ for(const ship of battle.ships)ship.alive=ship===pilot||ship===defender||guards.includes(ship)||ship.kind==='command';
  for(const guard of guards)guard.railNext=Infinity;
  pilot.x=5000;pilot.y=5000;pilot.vx=pilot.vy=0;
  battle.time=12;

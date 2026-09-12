@@ -26,17 +26,17 @@ for(const button of document.querySelectorAll('.audio-credits-open'))button.oncl
 function announce(t,d=3){$('notice').textContent=t;noticeUntil=(battle?.time||0)+d;}
 function status(t){$('entry-status').textContent=t;}
 function paintEntry(){const s=arcade.state().session;const ready=!!s?.authorized;$('opening').dataset.ready=String(ready);$('opening-credit').textContent='ON';$('code-form').hidden=ready;$('start').hidden=!ready;$('start').textContent=s?.activeRun?'CONTINUE GAME':'PUSH START';if(ready)status('FREE ARCADE · NO CODE REQUIRED');if(s?.authorized&&!ready)status('ACCESS COMPLETE · INSERT ANOTHER CODE');$('opening-best').textContent=String(store.scores()[0]?.score||0).padStart(6,'0');}
-async function activate(e){e?.preventDefault();if(busy)return;busy=true;$('enter-code').disabled=true;status('CHECKING CODE…');try{await arcade.activate($('code').value.trim());$('code').value='';paintEntry();$('start').focus();}catch(e){status(e.message);}finally{busy=false;$('enter-code').disabled=false;}}
+function activate(e){e?.preventDefault();if(busy)return;const code=$('code').value.trim().toLowerCase();if(!/^[a-z0-9]{6}$/.test(code)){status('ENTER YOUR SIX-CHARACTER CODE');return;}busy=true;$('enter-code').disabled=true;status('OPENING GENSIM…');location.assign('https://gensim.co/?code='+encodeURIComponent(code));}
 $('code-form').onsubmit=activate;
 let codeTimer=null,lastAutoCode='';
-function autoCode(){clearTimeout(codeTimer);const code=$('code').value.trim().toUpperCase();if(code!==lastAutoCode)lastAutoCode='';if(!/^[A-Z0-9]{6}$/.test(code)||code===lastAutoCode)return;codeTimer=setTimeout(()=>{if(busy||$('code-form').hidden||!arcade.state().config)return;lastAutoCode=code;void activate();},250);}
+function autoCode(){clearTimeout(codeTimer);const code=$('code').value.trim().toUpperCase();if(code!==lastAutoCode)lastAutoCode='';if(!/^[A-Z0-9]{6}$/.test(code)||code===lastAutoCode)return;codeTimer=setTimeout(()=>{if(busy||$('code-form').hidden)return;lastAutoCode=code;void activate();},250);}
 $('code').addEventListener('input',autoCode);$('code').addEventListener('change',autoCode);window.addEventListener('pageshow',autoCode);
 async function launchTransition(){const screen=$('launch-transition');screen.hidden=true;void screen.offsetWidth;screen.hidden=false;$('opening').hidden=true;if(reducedMotion.matches){await new Promise(resolve=>setTimeout(resolve,500));}else{await new Promise(resolve=>setTimeout(resolve,1250));}screen.hidden=true;}
 async function start(){if(busy)return;busy=true;soundInit();$('start').disabled=true;$('again').disabled=true;try{
  const next=await arcade.start();let b;const saved=store.flight(next.id);if(saved&&!saved.result)b=Battle.restore(saved);else b=new Battle(next.seed);
  run=next;battle=b;motion.reset(b);frameMeter.reset();fogAt=-1;friendsAt=-1;contactSource=null;requestGeneration++;mode='launching';map=false;spectatorShipId=null;zoomFactor=1;camera={x:b.viewShip.x,y:b.viewShip.y-80};particles=[];effects=[];rewards=[];recoil=0;hitConfirm=0;killChain=0;lastKillAt=-99;acc=0;saveAt=0;resetInput();mouse.aim=null;
  $('ending').hidden=true;$('pause-screen').hidden=true;activeUI(false);signal();await launchTransition();mode='playing';activeUI(true);$('boundary').hidden=true;announce('',0);canvas.focus();syncHUD();
- if(b.decisionPending)void requestOrders();
+ for(const a of b.admirals)if(a.pending)void requestOrders(a.side);
  }catch(e){status(e.message);$('result-note').textContent=e.message;}finally{busy=false;$('start').disabled=false;$('again').disabled=false;}}
 $('start').onclick=$('again').onclick=start;
 function save(){if(battle&&run){store.save(run,battle.snapshot());$('save-status').textContent=store.available?'Flight saved on this device.':'Device storage unavailable. Keep this tab open to preserve your flight.';}}
@@ -66,13 +66,23 @@ for(const [id,key] of [['touch-fire','fire']]){$(id).onpointerdown=e=>{e.prevent
 function input(){let x=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0)+touch.x,y=(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0)+touch.y;let fire=keys.has('Space')||mouse.fire||touch.fire,aim=mouse.aim??-Math.PI/2;
  const gp=navigator.getGamepads?.()?.find(p=>p?.connected);if(gp){const dz=n=>Math.abs(n||0)>.18?n:0;x+=dz(gp.axes[0]);y+=dz(gp.axes[1]);const ax=dz(gp.axes[2]),ay=dz(gp.axes[3]);if(Math.hypot(ax,ay)>.2)aim=Math.atan2(ay,ax);fire||=gp.buttons[0]?.pressed||gp.buttons[7]?.pressed;const b=gp.buttons.map(b=>b.pressed);if(b[9]&&!lastPadButtons[9])pause(true);if(b[8]&&!lastPadButtons[8])toggleMap();lastPadButtons=b;}
  return{x,y,fire,aim};}
-async function requestOrders(){if(!run||!battle)return;const b=battle,generation=requestGeneration;await Promise.allSettled([0,1].map(async side=>{const snap=b.decisionSnapshot(side);try{const r=await arcade.decisions(run,snap);if(generation===requestGeneration&&battle===b&&!b.result){const accepted=b.acceptOrders(snap,r.orders,r.source);if(!accepted)b.inference.status='late orders · standing orders';syncHUD();}}catch(e){if(generation===requestGeneration&&battle===b&&!b.result){b.inference.status='signal unavailable · standing orders';if(e.message.includes('allowance')||e.message.includes('Mint code')||e.message.includes('tokens left')){b.finish('retired',e.message.includes('tokens left')?'ACCESS COMPLETE':'CODE ALLOWANCE UNAVAILABLE');handleEvents();}}}}));}
+// The admirals. Names and brains come from the arcade config (server/admirals.mjs); the free
+// edition plays two local admirals. Each side asks on its own clock, and its pieces recall
+// while it thinks; an answer, or the battle's own ceiling, ends the regroup.
+const LOCAL_ADMIRALS=[{side:0,name:'BLUE',label:'LOCAL ADMIRAL',brand:null},{side:1,name:'RED',label:'LOCAL ADMIRAL',brand:null}];
+function admiralNames(){const a=arcade.state().config?.admirals;return Array.isArray(a)&&a.length===2?a:LOCAL_ADMIRALS;}
+async function requestOrders(side){if(!run||!battle)return;const b=battle,generation=requestGeneration,snap=b.decisionSnapshot(side);
+ if(arcade.state().config?.free){const think=2500+Math.random()*2500;setTimeout(()=>{if(generation===requestGeneration&&battle===b&&!b.result){b.acceptOrders(snap,b.fallback(snap),'local');syncHUD();}},think);return;}
+ try{const r=await arcade.decisions(run,snap);if(generation===requestGeneration&&battle===b&&!b.result){const accepted=b.acceptOrders(snap,r.orders,r.source);if(!accepted){b.setFallback(side);b.admirals[side].status='late orders · standing orders';}syncHUD();}}
+ catch(e){if(generation===requestGeneration&&battle===b&&!b.result){b.setFallback(side);b.admirals[side].status='signal lost · standing orders';syncHUD();if(e.message.includes('allowance')||e.message.includes('Mint code')||e.message.includes('tokens left')){b.finish('retired',e.message.includes('tokens left')?'ACCESS COMPLETE':'CODE ALLOWANCE UNAVAILABLE');handleEvents();}}}}
 function localEffect(e){return battle?.visiblePoint?battle.visiblePoint(e):Math.hypot(e.x-camera.x,e.y-camera.y)<Math.max(w,h)/zoom;}
 function pulseScore(kill){const box=$('score').parentElement,kind=kill?'reward-kill':'reward-hit';box.classList.remove('reward-hit','reward-kill');void box.offsetWidth;box.classList.add(kind);}
-function reward(e){if(!e.points)return;const kill=e.type==='explosion';if(kill){killChain=battle.time-lastKillAt<4.5?killChain+1:1;lastKillAt=battle.time;}const local=localEffect(e),label=e.assist?'ASSIST':kill?(e.targetKind==='cargo'?'CARGO DOWN':e.large?'FORTRESS DOWN':`${String(e.targetKind||'fighter').toUpperCase()} DOWN`):e.popped?'SHIELD BREAK':'HIT';rewards.push({x:e.x,y:e.y,life:kill?1.25:.72,max:kill?1.25:.72,points:e.points,label,kill,combo:kill?killChain:0,local});pulseScore(kill);const pan=local?clamp((e.x-camera.x)*zoom/(w/2),-1,1):0;sfx.reward({kill,big:e.large,combo:killChain,pan});}
+function reward(e){if(!e.points)return;const kill=e.type==='explosion';if(kill){killChain=battle.time-lastKillAt<4.5?killChain+1:1;lastKillAt=battle.time;}const local=localEffect(e),label=e.assist?'ASSIST':kill?(e.targetKind==='command'?'COMMAND SHIP DOWN':e.targetKind==='cargo'?'CARGO DOWN':e.large?'FORTRESS DOWN':`${String(e.targetKind||'fighter').toUpperCase()} DOWN`):e.popped?'SHIELD BREAK':'HIT';rewards.push({x:e.x,y:e.y,life:kill?1.25:.72,max:kill?1.25:.72,points:e.points,label,kill,combo:kill?killChain:0,local});pulseScore(kill);const pan=local?clamp((e.x-camera.x)*zoom/(w/2),-1,1):0;sfx.reward({kill,big:e.large,combo:killChain,pan});}
 function handleEvents(){for(const e of battle.events){
- if(e.type==='recall'){announce('RECALL · GREEN DIAMOND',4);signal();void requestOrders();}
- if(e.type==='final'){announce('FORTRESSES IN POSITION\nFINAL ENGAGEMENT',4);signal();}
+ if(e.type==='recall'){if(e.side===0){announce(`${admiralNames()[0].name.toUpperCase()} THINKING · REGROUP`,3);signal();}void requestOrders(e.side);}
+ if(e.type==='orders'&&e.side===0){announce(e.source==='inference'?`${admiralNames()[0].name.toUpperCase()} ORDERS · MOVE OUT`:e.source==='local'?'ORDERS · MOVE OUT':'STANDING ORDERS · MOVE OUT',2.5);}
+ if(e.type==='finishing'&&e.side===0&&battle.player.alive&&e.piece===battle.player.formation){announce('FINISH THEM',2.5);signal();}
+ if(e.type==='final'){announce('FINAL ENGAGEMENT\nCOMMAND SHIPS ADVANCE',4);signal();}
  if(e.type==='respawn'){camera={x:e.x,y:e.y-70};announce(`${battle.lives} LIVES · NEW FIGHTER`,3);signal();}
  if(e.type==='spectate'){resetInput();spectatorShipId=null;map=true;announce('SPECTATING · TAB CYCLES SURVIVORS',5);syncHUD();}
  if(e.type==='end'){syncHUD();void end();continue;}
@@ -92,9 +102,11 @@ async function end(){if(mode==='ended')return;const endedBattle=battle,endedRun=
 $('save-score').onclick=()=>{if(!scoreRecord)return;scoreRecord.name=$('initials').value;store.score(scoreRecord);board();$('save-score').disabled=true;};
 $('close').onclick=()=>{mode='opening';$('ending').hidden=true;$('opening').hidden=false;activeUI(false);arcade.init().then(paintEntry).catch(e=>status(e.message));paintEntry();};
 const formatTime=t=>`${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+// Beta access deliberately conceals remaining balance. The ledger is unchanged;
+// only its display is withheld. Never reintroduce a count, percentage or tooltip.
 function paintCard(){$('card-balance')?.remove();}
 
-function syncHUD(){if(!battle)return;paintCard();const p=battle.player,f=battle.squad(),watched=battle.ships.find(ship=>ship.id===spectatorShipId);$('score').textContent=String(battle.score).padStart(6,'0');$('blue-count').textContent=battle.living(0).length;$('red-count').textContent=battle.living(1).length;$('blue-count').title='All surviving blue ships';$('red-count').title='All surviving red ships';$('timer').textContent=formatTime(battle.time);$('map-label').textContent=battle.spectating?(map?'NEXT SHIP · TAB':watched?.alive?`${watched.kind.toUpperCase()} ${watched.id+1} · TAB`:'NEXT SHIP · TAB'):map?'RETURN TO FLIGHT':'SECTOR · TAB';$('token-count').textContent='FREE ARCADE';$('pilot-hud').classList.toggle('spectating',battle.spectating);$('touch-controls').hidden=battle.spectating;$('lives').textContent=battle.spectating?'SPECTATING':Array.from({length:3},(_,i)=>i<battle.lives?'▲':'△').join(' ');$('hull').value=p.alive?p.hp/p.maxHp:0;$('shield').textContent=(p.shield>0?'●':'○')+' '+(p.shield>1?'●':'○');$('boundary').hidden=!(p.alive&&p.outside>0);if(p.outside>0)$('boundary').textContent=`RETURN TO SECTOR · ${Math.ceil(5-p.outside)}`;}
+function syncHUD(){if(!battle)return;paintCard();const p=battle.player,f=battle.squad(),watched=battle.ships.find(ship=>ship.id===spectatorShipId);$('score').textContent=String(battle.score).padStart(6,'0');const names=admiralNames();for(const [side,key] of [[0,'blue'],[1,'red']]){const a=battle.admirals?.[side],n=names[side];if($(key+'-name').textContent!==n.name)$(key+'-name').textContent=n.name;if($(key+'-model').textContent!==n.label)$(key+'-model').textContent=n.label;const count=$(key+'-count');count.textContent=a?.pending?'THINKING…':`${battle.living(side).length} SHIPS`;count.classList.toggle('thinking',!!a?.pending);count.title=`All surviving ${key} ships`;}$('timer').textContent=formatTime(battle.time);$('map-label').textContent=battle.spectating?(map?'NEXT SHIP · TAB':watched?.alive?`${watched.kind.toUpperCase()} ${watched.id+1} · TAB`:'NEXT SHIP · TAB'):map?'RETURN TO FLIGHT':'SECTOR · TAB';$('token-count').textContent='FREE ARCADE';$('pilot-hud').classList.toggle('spectating',battle.spectating);$('touch-controls').hidden=battle.spectating;$('lives').textContent=battle.spectating?'SPECTATING':Array.from({length:3},(_,i)=>i<battle.lives?'▲':'△').join(' ');$('hull').value=p.alive?p.hp/p.maxHp:0;$('shield').textContent=(p.shield>0?'●':'○')+' '+(p.shield>1?'●':'○');$('boundary').hidden=!(p.alive&&p.outside>0);if(p.outside>0)$('boundary').textContent=`RETURN TO SECTOR · ${Math.ceil(5-p.outside)}`;}
 // Original functional pixel sprites: each class has its own silhouette and hardware.
 const FIGHTER=['.......11.......','.......22.......','...1..1221..1...','...1..1221..1...','..11.112211.11..','1111112332111111','11.1112332111.11','1..1112332111..1','...1111111111...','...11..11..11...','...11..11..11...','....4......4....'];
 const RED=['..11........11..','..21...11...12..','..21..1221..12..','..211112211112..','..211123321112..','..211123321112..','..211112211112..','..21..1111..12..','..21...11...12..','..11........11..','...4........4...'];
@@ -103,17 +115,15 @@ const CAV=['........11........','.......1221.......','......112211......','.....
 const CARGO=['....222222222....','...21111111112...','..2113333333112..','.211333333333112.','21133333333333112','21133333333333112','.211333333333112.','..2113333333112..','...21111111112...','....222222222....','......44..44......'];
 function sprite(rows,side,player=false){const c=document.createElement('canvas');c.width=Math.max(...rows.map(r=>r.length));c.height=rows.length;const g=c.getContext('2d'),pal=player?['#c18b35','#fff4d8','#65dbff','#ffdc7e']:side?['#823c59','#e86277','#ffe4ba','#f0a455']:['#395c87','#70bbd7','#f1ead1','#f6b95a'];rows.forEach((r,y)=>[...r].forEach((p,x)=>{if(p!=='.'){g.fillStyle=pal[+p-1];g.fillRect(x,y,1,1);}}));return c;}
 function cargoSprite(side){const c=document.createElement('canvas');c.width=Math.max(...CARGO.map(r=>r.length));c.height=CARGO.length;const g=c.getContext('2d'),pal=side?['#2e3a48','#c6d1d4','#80919a','#cf5f68']:['#2e3a48','#c6d1d4','#80919a','#4f9fc5'];CARGO.forEach((r,y)=>[...r].forEach((p,x)=>{if(p!=='.'){g.fillStyle=pal[+p-1];g.fillRect(x,y,1,1);}}));return c;}
-const sprites=[0,1].map(side=>({fighter:sprite(side?RED:FIGHTER,side),scout:sprite(SCOUT,side),cavalry:sprite(CAV,side),cargo:cargoSprite(side)}));
+const ESCORT=['........11........','.......1221.......','..11..112211..11..','..21.11233211.12..','..211122332211112.','..211222332222112.','.11222223322222211','112222223322222211','11.1122233222211.1','1...112223322211..','.....11122211.....','......111111......','.....44....44.....'];
+const sprites=[0,1].map(side=>({fighter:sprite(side?RED:FIGHTER,side),scout:sprite(SCOUT,side),cavalry:sprite(CAV,side),escort:sprite(ESCORT,side),cargo:cargoSprite(side)}));
 function fortress(side){
  const c=document.createElement('canvas');c.width=128;c.height=96;const g=c.getContext('2d'),faction=side?'#d95b70':'#51b4df',factionDark=side?'#743447':'#285a82',ink='#111923',deep='#1d2a38',iron='#35485a',steel='#687f91',plate='#9babb4',light='#e9f5ed',r=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
- // Black silhouette, armored shoulders and a long spinal rail make the hull read as a capital ship.
  r(57,0,14,28,ink);r(51,8,26,34,ink);r(30,20,68,68,ink);r(14,30,100,55,ink);r(2,42,124,31,ink);r(22,80,84,12,ink);
  r(60,1,8,28,light);r(56,10,16,23,steel);r(48,22,32,15,deep);r(32,25,64,58,iron);r(17,34,94,43,steel);r(6,45,116,23,plate);r(12,52,104,13,deep);
- // Layered armor slabs, faction-painted keel and recessed hangar/engine machinery.
  r(25,30,78,7,'#7e929f');r(22,38,84,6,'#c0cbd0');r(32,46,64,25,'#899aa5');r(39,48,50,20,'#c5ced0');r(53,43,22,31,factionDark);r(58,46,12,25,faction);r(60,50,8,8,'#dffaff');
  for(const x of [9,101]){r(x,39,18,8,deep);r(x-3,49,24,13,iron);r(x,52,18,7,'#202f3d');r(x+3,54,12,3,factionDark);r(x+6,33,6,13,plate);r(x+8,27,2,12,light);}
  for(const x of [27,43,79,95]){r(x,71,9,14,deep);r(x+2,74,5,8,'#425a6c');r(x+3,84,3,6,faction);}
- // Panel seams, heat vents, running lights and battle-worn pixels give the broad plates texture.
  for(const x of [20,34,92,106]){r(x,45,1,21,'#4a6070');r(x+3,47,1,16,'#d2dad8');}
  for(let x=43;x<=82;x+=8){r(x,36,4,3,light);r(x,64,4,2,ink);}
  for(const [x,y] of [[15,43],[30,34],[36,58],[48,28],[76,28],[89,58],[111,43],[24,66],[101,66]]){r(x,y,2,2,'#e2ded0');r(x+2,y+2,2,1,'#293948');}
@@ -121,6 +131,29 @@ function fortress(side){
  return c;
 }
 const fortressArt=[fortress(0),fortress(1)],playerArt=sprite(FIGHTER,0,true);
+// The command ship: a broad flagship silhouette with a long spinal cannon, eight mounts and a
+// bridge tower, painted in the faction colour. It houses the admiral.
+function commandShip(side){const c=document.createElement('canvas');c.width=160;c.height=120;const g=c.getContext('2d'),color=side?'#c2586a':'#4f9bc7',glow=side?'#ffc3c8':'#c6f0ff',r=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+ r(72,0,16,48,'#c9d3d6');r(70,10,20,30,'#7f8f9e');r(76,2,8,44,glow);
+ r(40,30,80,26,'#2f3c4c');r(20,44,120,30,'#4f6172');r(6,56,148,16,'#94a3ad');r(0,62,160,8,'#5c6f80');
+ r(30,72,100,22,'#3b4b5c');r(46,92,68,14,'#2a3745');r(56,104,48,10,'#1a2530');
+ r(52,36,56,24,'#aebac2');r(64,40,32,16,color);r(70,44,20,8,glow);
+ for(const x of [12,136])r(x,48,12,22,'#213040');for(const x of [26,122])r(x,40,12,30,'#2c3b4c');
+ for(const [x,y] of [[22,34],[126,34],[14,78],[134,78],[38,96],[110,96],[54,20],[94,20]]){r(x,y,12,12,'#101923');r(x+2,y+2,8,8,color);r(x+5,y-3,2,6,'#e8f0ee');}
+ for(const x of [36,52,96,112])r(x,64,6,4,'#eef3ed');for(const x of [20,44,68,92,116,136])r(x,74,4,2,'#0f1720');
+ r(66,106,28,6,'#0f1720');r(60,110,40,8,side?'#f89b67':'#548eb8');r(72,116,16,4,'#ffe7c0');
+ return c;}
+const commandArt=[commandShip(0),commandShip(1)];
+// Brand marks painted on each side's big hulls (batteries, convoys, command ship) so the crowd can
+// see whose fleet is whose. Drawn from the arcade config; no brand, no mark. Nominative: the mark
+// names the model actually running that side, and it is one line to swap.
+function markCanvas(brand){if(!brand)return null;const c=document.createElement('canvas');c.width=c.height=32;const g=c.getContext('2d');g.lineCap='round';g.lineJoin='round';
+ const strokeTwice=draw=>{g.strokeStyle='#0b1118';g.lineWidth=7;draw();g.stroke();g.strokeStyle='#f6f2e8';g.lineWidth=3.4;draw();g.stroke();};
+ if(brand==='openai'){strokeTwice(()=>{g.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3-Math.PI/2,b=a+Math.PI/3,x=16+Math.cos(a)*10.5,y=16+Math.sin(a)*10.5,x2=16+Math.cos(b)*10.5,y2=16+Math.sin(b)*10.5;g.moveTo(x,y);g.lineTo(x2,y2);g.moveTo(x,y);g.lineTo(x+Math.cos(a-Math.PI/3)*6.5,y+Math.sin(a-Math.PI/3)*6.5);}});}
+ else if(brand==='anthropic'){strokeTwice(()=>{g.beginPath();g.moveTo(16,5);g.lineTo(6,27);g.moveTo(16,5);g.lineTo(26,27);g.moveTo(10.5,19.5);g.lineTo(21.5,19.5);});}
+ else{strokeTwice(()=>{g.beginPath();g.moveTo(16,4);g.lineTo(19,13);g.lineTo(28,16);g.lineTo(19,19);g.lineTo(16,28);g.lineTo(13,19);g.lineTo(4,16);g.lineTo(13,13);g.closePath();});}
+ return c;}
+let marks=[null,null];function paintMarks(){const a=admiralNames();marks=[0,1].map(i=>markCanvas(a[i]?.brand));}
 function screen(x,y){return{x:(x-camera.x)*zoom+w/2,y:(y-camera.y)*zoom+h/2};}
 const pose=s=>motion.at(s,renderAlpha);
 function entityScreen(s){const p=pose(s);return screen(p.x,p.y);}
@@ -139,7 +172,7 @@ function drawMap(){
  rc.setTransform(dpr,0,0,dpr,0,0);rc.imageSmoothingEnabled=true;fog(rc,size);rc.strokeStyle='#233447';rc.lineWidth=1/dpr;
  for(let n=1;n<4;n++){const pos=n*size/4;rc.beginPath();rc.moveTo(pos,0);rc.lineTo(pos,size);rc.moveTo(0,pos);rc.lineTo(size,pos);rc.stroke();}
  const unit=WORLD.width/size,shown=battle.ships.filter(s=>renderVisible(s)).sort((a,b)=>Number(squadMember(a))-Number(squadMember(b))||Number(a.player)-Number(b.player));
- for(const s of shown){rc.fillStyle=s.player?C.gold:squadMember(s)?C.squad:s.kind==='cargo'?'#c6d1d4':s.side?C.red:C.blue;const n=s.kind==='artillery'?4:s.kind==='cargo'?3:squadMember(s)?3.5:1.5;rc.fillRect(Math.round(pose(s).x/unit*dpr)/dpr-n/2,Math.round(pose(s).y/unit*dpr)/dpr-n/2,n,n);}
+ for(const s of shown){rc.fillStyle=s.player?C.gold:squadMember(s)?C.squad:s.kind==='cargo'?'#c6d1d4':s.side?C.red:C.blue;const n=s.kind==='command'?6:s.kind==='artillery'?4:s.kind==='cargo'?3:squadMember(s)?3.5:1.5;rc.fillRect(Math.round(pose(s).x/unit*dpr)/dpr-n/2,Math.round(pose(s).y/unit*dpr)/dpr-n/2,n,n);}
  const p=battle.player;if(p.alive){rc.strokeStyle=C.gold;rc.lineWidth=1;rc.strokeRect(pose(p).x/unit-4,pose(p).y/unit-4,8,8);}
  if(!map){rc.strokeStyle='#b2c7cf';rc.lineWidth=1/dpr;rc.strokeRect((camera.x-w/zoom/2)/unit,(camera.y-h/zoom/2)/unit,w/zoom/unit,h/zoom/unit);}
 }
@@ -166,14 +199,17 @@ function draw(){renderTime=battle?Math.max(0,battle.time-(1-renderAlpha)*FIXED_S
  for(const b of battle.bolts){const p=entityScreen(b);if(p.x<0||p.y<0||p.x>w||p.y>h)continue;const visible=b.side===0||renderFriends.some(s=>(s.x-b.x)**2+(s.y-b.y)**2<TYPES[s.kind].vision**2);if(!visible)continue;const a=Math.atan2(b.vy,b.vx),len=(b.heavy?Math.max(13,38*zoom):Math.max(5,19*zoom))*(b.visualScale??1),tx=p.x-Math.cos(a)*len,ty=p.y-Math.sin(a)*len;if(b.heavy){line(p.x,p.y,tx,ty,'#f69538',Math.max(4,7*zoom));line(p.x,p.y,tx,ty,C.gold,Math.max(2,4*zoom));line(p.x,p.y,p.x-Math.cos(a)*len*.75,p.y-Math.sin(a)*len*.75,C.white,1);}else {line(p.x,p.y,tx,ty,b.light?(b.side?'#ffbcb0':'#bbebff'):b.player?C.gold:b.side?C.red:C.blue,b.player?4*(b.visualScale??1):3);line(p.x,p.y,p.x-Math.cos(a)*len*.6,p.y-Math.sin(a)*len*.6,C.white,1);}}
  for(const r of battle.rockets){const p=entityScreen(r);for(let i=0;i<3;i++){const off=Math.sin(renderTime*28+i*2.1)*4;line(p.x-Math.sin(r.a)*off,p.y+Math.cos(r.a)*off,p.x-Math.cos(r.a)*18-Math.sin(r.a)*off,p.y-Math.sin(r.a)*18+Math.cos(r.a)*off,i===0?C.white:C.gold,1);}}
  for(const s of battle.ships){if(!renderVisible(s))continue;const q=pose(s),p=screen(q.x,q.y);if(s.player&&!map){p.x-=Math.cos(q.a)*recoil*zoom;p.y-=Math.sin(q.a)*recoil*zoom;}if(p.x<-90||p.y<-90||p.x>w+90||p.y>h+90)continue;const color=s.side?C.red:C.blue;
-  if(map){ctx.fillStyle=s.player?C.gold:squadMember(s)?C.squad:s.kind==='cargo'?'#c6d1d4':color;const n=s.kind==='artillery'?5:s.kind==='cargo'?3:squadMember(s)?4:2;ctx.fillRect(Math.round(p.x)-n/2,Math.round(p.y)-n/2,n,n);continue;}
-  const art=s.player?playerArt:s.kind==='artillery'?fortressArt[s.side]:sprites[s.side][s.kind],size=(s.kind==='artillery'?125:s.kind==='cargo'?72:s.kind==='cavalry'?42:s.kind==='scout'?31:s.player?34:29)*zoom,angle=q.a+Math.PI/2;
+  if(map){ctx.fillStyle=s.player?C.gold:squadMember(s)?C.squad:s.kind==='cargo'?'#c6d1d4':color;const n=s.kind==='command'?8:s.kind==='artillery'?5:s.kind==='cargo'?3:squadMember(s)?4:2;ctx.fillRect(Math.round(p.x)-n/2,Math.round(p.y)-n/2,n,n);continue;}
+  const art=s.player?playerArt:s.kind==='artillery'?fortressArt[s.side]:s.kind==='command'?commandArt[s.side]:sprites[s.side][s.kind],size=(s.kind==='command'?150:s.kind==='artillery'?125:s.kind==='cargo'?72:s.kind==='cavalry'?42:s.kind==='escort'?40:s.kind==='scout'?31:s.player?34:29)*zoom,angle=q.a+Math.PI/2;
   ctx.save();ctx.translate(Math.round(p.x),Math.round(p.y));ctx.rotate(angle);
   if(s.kind!=='artillery'&&Math.hypot(s.vx,s.vy)>25){ctx.fillStyle=s.boosting?C.white:s.side?'#f89b67':'#548eb8';const flame=(s.boosting?28:10+Math.sin(renderTime*40+s.id)*3)*zoom;ctx.fillRect(-size*.23,size*.32,Math.max(1,size*.11),flame);ctx.fillRect(size*.12,size*.32,Math.max(1,size*.11),flame);}
-  if(s.kind==='artillery')ctx.drawImage(art,-size*.72,-size*.54,size*1.44,size*1.08);else ctx.drawImage(art,-size/2,-size/2,size,size);if(s.flash>0){ctx.globalAlpha=s.flash*2;ctx.fillStyle=C.white;ctx.fillRect(-size*.25,-size*.3,size*.5,size*.6);ctx.globalAlpha=1;}ctx.restore();
+  if(s.kind==='artillery')ctx.drawImage(art,-size*.72,-size*.54,size*1.44,size*1.08);else if(s.kind==='command')ctx.drawImage(art,-size*.66,-size*.5,size*1.32,size);else ctx.drawImage(art,-size/2,-size/2,size,size);const mark=marks[s.side];if(mark&&(s.kind==='artillery'||s.kind==='cargo'||s.kind==='command')){const m=size*(s.kind==='cargo'?.36:s.kind==='command'?.22:.24),my=s.kind==='command'?size*.14:s.kind==='artillery'?size*.08:0;ctx.drawImage(mark,-m/2,my-m/2,m,m);}if(s.flash>0){ctx.globalAlpha=s.flash*2;ctx.fillStyle=C.white;ctx.fillRect(-size*.25,-size*.3,size*.5,size*.6);ctx.globalAlpha=1;}ctx.restore();
   if(s.kind==='artillery'){
    for(const t of s.turrets){const tp=battle.turretPoint(pose(s),t),q=screen(tp.x,tp.y),n=Math.max(4,13*zoom),x=Math.round(q.x-n/2),y=Math.round(q.y-n/2);ctx.fillStyle='#101923';ctx.fillRect(x-2,y-2,n+4,n+4);ctx.fillStyle=t.flash>0?C.white:color;ctx.fillRect(x,y,n,n);ctx.fillStyle='#dce8e5';ctx.fillRect(Math.round(q.x)-1,y-5,3,7);ctx.fillStyle=C.gold;ctx.fillRect(Math.round(q.x)-1,Math.round(q.y)-1,3,3);}
    const bw=Math.max(72,size*1.05),y=p.y-size*.55;ctx.fillStyle='#222b38';ctx.fillRect(p.x-bw/2,y,bw,3);ctx.fillStyle=color;ctx.fillRect(p.x-bw/2,y,bw*s.hp/s.maxHp,3);text(`${s.side?'RED':'BLUE'} RAIL CRUISER`,p.x,y-5,color,7);const ready=clamp(1-(s.railNext-battle.time)/30,0,1);ctx.fillStyle=C.gold;ctx.fillRect(p.x-bw/2,p.y+size*.52,bw*ready,2);
+  }else if(s.kind==='command'){
+   for(const t of s.turrets){const tp=battle.turretPoint(pose(s),t),q=screen(tp.x,tp.y),cannon=t.id===8,n=Math.max(cannon?5:3,(cannon?16:11)*zoom),x=Math.round(q.x-n/2),y=Math.round(q.y-n/2);ctx.fillStyle='#101923';ctx.fillRect(x-2,y-2,n+4,n+4);ctx.fillStyle=t.flash>0?C.white:cannon?C.gold:color;ctx.fillRect(x,y,n,n);ctx.fillStyle='#dce8e5';ctx.fillRect(Math.round(q.x)-1,y-(cannon?9:5),3,cannon?11:7);}
+   const bw=Math.max(84,size*1.1),y=p.y-size*.58;ctx.fillStyle='#222b38';ctx.fillRect(p.x-bw/2,y,bw,4);ctx.fillStyle=s.hp/s.maxHp<.34?C.gold:color;ctx.fillRect(p.x-bw/2,y,bw*s.hp/s.maxHp,4);text(`${admiralNames()[s.side].name.toUpperCase()} · COMMAND SHIP`,p.x,y-5,color,7);
   }else{
    if(s.kind==='cargo'){for(const t of s.turrets){const tp=battle.turretPoint(pose(s),t),q=screen(tp.x,tp.y),n=Math.max(2,5*zoom);ctx.fillStyle=t.flash>0?C.white:'#d4a64d';ctx.fillRect(Math.round(q.x-n/2),Math.round(q.y-n/2),n,n);}text('MERCHANT',p.x,p.y-size*.72,C.white,7);}
    if(s.shield>0){ctx.globalAlpha=s.lastHit>battle.time-.6?.8:s.player?.35:.15;ctx.strokeStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.arc(p.x,p.y,size*.67,0,s.shield===2?Math.PI*2:Math.PI*1.5);ctx.stroke();ctx.globalAlpha=1;}
@@ -255,8 +291,8 @@ function frame(now){
  }
  requestAnimationFrame(frame);
 }
-function publicState(){return{mode,time:battle?.time??0,lives:battle?.lives??3,score:battle?.score??0,ships:battle?battle.living(0).length+battle.living(1).length:354,shipsLeft:{blue:battle?.living(0).length??177,red:battle?.living(1).length??177},spectating:battle?.spectating??false,visibleEnemies:battle?.contacts[0].filter(id=>battle.ships[id].side===1).length??0,phase:battle?.phase,result:battle?.result,map,inference:battle?.inference};}
-arcade.init().then(({config})=>{paintEntry();if(config.localTest){localDiagnostics=true;window.__starfall={state:publicState,get battle(){return battle;},get perf(){return perf;},get performance(){return frameMeter.report();},rendered(id){return {...pose(battle.ships[id])};},get audio(){return sfx.status();},get sound(){return sfx;},get camera(){return {...camera,zoom,viewWidth:w/zoom,viewHeight:h/zoom};},pause,draw,start,async advance(seconds){if(!battle)throw new Error('Start first');for(let i=0;i<seconds*30&&!battle.result;i++){motion.capture(battle);battle.step(FIXED_STEP,{});if(battle.events.some(e=>e.type==='recall'))for(let side=0;side<2;side++){const snap=battle.decisionSnapshot(side);battle.acceptOrders(snap,battle.fallback(snap),'fixture');}handleEvents();}renderAlpha=1;syncHUD();draw();}};}}).catch(()=>status('ARCADE CONNECTION UNAVAILABLE · Reload to reconnect.'));
+function publicState(){return{mode,time:battle?.time??0,lives:battle?.lives??3,score:battle?.score??0,ships:battle?battle.living(0).length+battle.living(1).length:354,shipsLeft:{blue:battle?.living(0).length??177,red:battle?.living(1).length??177},spectating:battle?.spectating??false,visibleEnemies:battle?.contacts[0].filter(id=>battle.ships[id].side===1).length??0,phase:battle?.phase,result:battle?.result,map,inference:battle?.inference,admirals:battle?.admirals?.map(a=>({side:a.side,epoch:a.epoch,pending:a.pending,status:a.status,real:a.real,fallback:a.fallback,local:a.local}))??null,commandShips:battle?[0,1].map(side=>{const c=battle.commandShip(side);return c?{alive:c.alive,hp:Math.round(c.hp)}:null;}):null};}
+arcade.init().then(({config})=>{paintEntry();paintMarks();if(config.localTest){localDiagnostics=true;window.__starfall={state:publicState,get battle(){return battle;},get perf(){return perf;},get performance(){return frameMeter.report();},rendered(id){return {...pose(battle.ships[id])};},get audio(){return sfx.status();},get sound(){return sfx;},get camera(){return {...camera,zoom,viewWidth:w/zoom,viewHeight:h/zoom};},pause,draw,start,async advance(seconds){if(!battle)throw new Error('Start first');for(let i=0;i<seconds*30&&!battle.result;i++){motion.capture(battle);battle.step(FIXED_STEP,{});for(const a of battle.admirals)if(a.pending){const snap=battle.decisionSnapshot(a.side);battle.acceptOrders(snap,battle.fallback(snap),'fixture');}handleEvents();}renderAlpha=1;syncHUD();draw();}};}}).catch(()=>status('ARCADE CONNECTION UNAVAILABLE · Reload to reconnect.'));
 if(document.modelContext?.registerTool){try{document.modelContext.registerTool({name:'read_starfall_state',description:'Read the pilot’s current arcade state. Includes fleet survivor totals; enemy positions remain restricted to team vision.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute(args){if(!args||Object.keys(args).length)throw new Error('Expected empty input');return publicState();}});}catch{}}
 requestAnimationFrame(frame);
 
