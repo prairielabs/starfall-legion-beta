@@ -1,0 +1,26 @@
+STARFALL LEGION — AUDIO CREDITS
+
+Sound effects: Sci-Fi Sounds (1.0) by Kenney, 2020.
+https://kenney.nl/assets/sci-fi-sounds
+License: Creative Commons Zero 1.0 Universal (CC0).
+https://creativecommons.org/publicdomain/zero/1.0/
+
+cannon.wav: laserLarge_001.ogg
+cannonAlt.wav: laserLarge_002.ogg
+shield.wav: forceField_000.ogg
+shieldBreak.wav: forceField_003.ogg
+impact.wav: impactMetal_003.ogg
+explosion.wav: explosionCrunch_001.ogg
+explosionLarge.wav: explosionCrunch_004.ogg
+rail.wav: laserLarge_004.ogg
+engine.wav: spaceEngineLow_000.ogg
+signal.wav: computerNoise_000.ogg (0.36-second excerpt with fade-out)
+Effects converted to mono 32 kHz PCM WAV for browser compatibility.
+
+Music: 8-bit Epic Space Shooter Music by HydroGene, 2023.
+https://opengameart.org/content/8-bit-epic-space-shooter-music
+flight.mp3 is the unmodified 8bit-spaceshooter.mp3 download.
+License: Creative Commons Zero 1.0 Universal (CC0).
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Both authors permit commercial use. Credits are included voluntarily.

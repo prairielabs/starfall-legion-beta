@@ -1,0 +1,14 @@
+{
+  "name": "starfall-legion-beta",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The open-source free-play beta of Starfall Legion.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
