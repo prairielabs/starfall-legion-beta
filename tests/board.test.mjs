@@ -70,30 +70,30 @@ test('every kind of piece can move to a different square within one order cycle'
 
 test('the simulation spawns only kinds the board knows', () => {
  const battle = fresh();
- const spawned = new Set(battle.formations.map(f => f.kind));
+ const spawned = new Set(battle.formations.filter(f=>f.count).map(f => f.kind));
  for (const kind of spawned) assert.ok(KINDS[kind], `board knows ${kind}`);
- assert.deepEqual([...spawned].sort(), ['artillery', 'cargo', 'cavalry', 'command', 'fighter', 'scout']);
+ assert.deepEqual([...spawned].sort(), ['artillery', 'cargo', 'cavalry', 'command', 'fighter']);
  assert.ok(KINDS.command && KINDS.escort);
  assert.ok(WEIGHTS.command > WEIGHTS.artillery && WEIGHTS.artillery > WEIGHTS.cavalry);
- assert.deepEqual([...new Set(battle.ships.map(s => s.kind))].sort(), ['artillery', 'cargo', 'cavalry', 'command', 'escort', 'fighter', 'scout']);
+ assert.deepEqual([...new Set(battle.ships.map(s => s.kind))].sort(), ['artillery', 'cargo', 'cavalry', 'command', 'escort', 'fighter']);
 });
 
-test('the full roster is on the board: 34 pieces covering all 464 ships', () => {
+test('the full roster is on the board: 30 pieces covering all 456 ships', () => {
  const battle = fresh();
  const all = pieces(battle);
- assert.equal(battle.ships.length, 464);
- assert.equal(all.length, 34);
+ assert.equal(battle.ships.length, 456);
+ assert.equal(all.length, 30);
  const count = kind => all.filter(p => p.kind === kind).length;
  assert.equal(count('fighter'), 8);
- assert.equal(count('scout'), 4);
+ assert.equal(count('scout'), 0);
  assert.equal(count('artillery'), 6);
  assert.equal(count('cavalry'), 6);
  assert.equal(count('cargo'), 8);
  assert.equal(count('command'), 2);
- assert.equal(all.filter(p => p.side === 0).length, 17);
- assert.equal(all.filter(p => p.side === 1).length, 17);
+ assert.equal(all.filter(p => p.side === 0).length, 15);
+ assert.equal(all.filter(p => p.side === 1).length, 15);
  const covered = new Set(all.flatMap(p => battle.members(p.id).map(s => s.id)));
- assert.equal(covered.size, 464);
+ assert.equal(covered.size, 456);
  assert.ok(battle.ships.every(s => covered.has(s.id)));
  // Exactly one piece carries the human pilot.
  assert.equal(all.filter(p => p.player).length, 1);
@@ -139,16 +139,16 @@ test('strength is weighted by ship type and scaled by hull for big hulls', () =>
  // A convoy is three pods at 4 plus five escorts at 1.
  assert.equal(pieces(battle).find(p => p.kind === 'cargo').strength, 17);
  // A lost fighter reads as a lost point, and the fraction follows.
- const scoutPair = battle.formations.find(f => f.kind === 'scout');
- battle.members(scoutPair.id)[0].alive = false;
- assert.equal(pieceOf(battle, scoutPair.id).remaining, 0.5);
+ const squad = battle.formations.find(f => f.kind === 'fighter');
+ battle.members(squad.id)[0].alive = false;
+ assert.equal(pieceOf(battle, squad.id).count,22);
  assert.equal(shipWorth({ kind: 'command', hp: 250, maxHp: 1000 }), 7.5);
 });
 
 test('every formation presents as a piece with a square, a strength and a reach', () => {
  const battle = fresh();
  const all = pieces(battle);
- assert.equal(all.length, battle.formations.length);
+ assert.equal(all.length, battle.formations.filter(f=>f.count).length);
  for (const piece of all) {
   assert.match(piece.square, /^[a-n](?:[1-9]|1[0-4])$/);
   assert.ok(piece.count > 0);
@@ -211,7 +211,7 @@ test('a move order says whether the square is within reach', () => {
 test('legal moves list only reachable squares for each piece', () => {
  const battle = fresh();
  const moves = legalMoves(battle, 0);
- assert.equal(moves.length, 17);
+ assert.equal(moves.length, 15);
  for (const move of moves) {
   assert.ok(move.squares.includes(move.at));
   // Fast pieces (scouts, cavalry) can cover the whole board; slow ones cannot.
@@ -244,7 +244,7 @@ test('the board view inherits the existing fog', () => {
  assert.equal(view.version, 2);
  assert.equal(view.side, 0);
  assert.deepEqual(view.board, { files: 14, ranks: 14, square: 1000 });
- assert.equal(view.own.length, 17);
+ assert.equal(view.own.length, 15);
  assert.ok(view.own.every(p => p.side === 0));
  assert.ok(view.enemy.every(p => p.side === 1));
  const visible = new Set(battle.contacts[0]);
@@ -277,8 +277,8 @@ test('the rendered board shows all thirty pieces with the right case', () => {
  const foggedLower = (fogged.split('\n').slice(1, 15).join('').match(/[fsacmk]/g) || []).length;
  assert.ok(foggedLower < lower || lower === 0);
  // The roster is one line per piece.
- assert.equal(roster(battle).length, 34);
- assert.equal(roster(battle, 1).length, 17);
+ assert.equal(roster(battle).length, 30);
+ assert.equal(roster(battle, 1).length, 15);
  assert.ok(roster(battle).some(line => line.includes('(pilot)')));
 });
 
@@ -290,5 +290,5 @@ test('a destroyed formation leaves the board', () => {
  assert.equal(centreOfGravity(battle, formation.id), null);
  assert.equal(pieceOf(battle, formation.id), null);
  assert.ok(!pieces(battle).some(p => p.id === formation.id));
- assert.equal(pieces(battle).length, 33);
+ assert.equal(pieces(battle).length, 29);
 });

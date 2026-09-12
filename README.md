@@ -36,6 +36,11 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 ## Commander battles
 
+Scouts are removed. The pilot starts cruising from the left-middle of its
+fighter swarm at the same 245-unit speed as the squadron. Finish locks apply
+only to damaged capital hulls. The arcade powers on at its final title size;
+the opening flight view is wider, with a scroll/keyboard or phone-pinch hint.
+
 The fleets now close toward the centre in about 70 seconds. Capital ships stay
 on their own side of the centre line; fighters and cavalry can cross to attack.
 Cavalry formations use their faster class speed. The hosted model edition shows
@@ -46,7 +51,7 @@ The hosted paid edition now pits **ChatGPT (GPT-5.6 Terra), blue**, against
 local admirals, with no provider connection or code required. Squadron markers
 are compact green dots on the minimap and sector map.
 
-Every battle is now a chess match between two admirals played out by 464
+Every battle is now a chess match between two admirals played out by 456
 ships. Each side has a command ship, a broad flagship with eight light mounts
 and a spinal cannon that fires three-round bursts, guarded by an elite escort
 of ten double-shot ships. The game ends the moment a command ship dies.

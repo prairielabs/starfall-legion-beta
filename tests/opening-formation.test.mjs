@@ -4,10 +4,10 @@ import {Battle} from '../dist/simulation.js';
 
 const forwardProjection=(ship,formation)=>(ship.x-formation.x)*Math.cos(formation.a)+(ship.y-formation.y)*Math.sin(formation.a);
 
-test('a manual fresh flight places the pilot in the true rear of its echelon',()=>{
+test('a manual fresh flight places the pilot in the moving left-middle of its echelon',()=>{
  const battle=new Battle(501),formation=battle.formations[battle.player.formation],members=battle.members(formation.id);
  const rear=Math.min(...members.map(ship=>forwardProjection(ship,formation)));
- assert.equal(forwardProjection(battle.player,formation),rear);
+ assert.ok(forwardProjection(battle.player,formation)>rear);assert.equal(battle.player.slot,11);assert.ok(battle.player.x<formation.x);assert.equal(battle.player.vy,-245);
 });
 
 test('fighter formations open as broad, stepped echelons',()=>{

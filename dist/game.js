@@ -8,7 +8,7 @@ const sfx=new ArcadeSound();
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:false}),radar=$('radar'),rc=radar.getContext('2d');
 let browserStorage;try{browserStorage=localStorage;}catch{browserStorage={getItem(){throw 0;},setItem(){throw 0;}};}const store=new Storage(browserStorage);
 const C={blue:'#6ad9ff',red:'#ff647e',white:'#fff4d8',gold:'#ffdc7e',squad:'#7dff85'};
-let battle=null,run=null,mode='opening',w=800,h=450,zoom=1,zoomFactor=1,map=false,camera={x:1750,y:7500},keys=new Set(),mouse={aim:null,fire:false},touch={x:0,y:0,fire:false};
+let battle=null,run=null,mode='opening',w=800,h=450,zoom=1,zoomFactor=.78,map=false,camera={x:1750,y:7500},keys=new Set(),mouse={aim:null,fire:false},touch={x:0,y:0,fire:false};
 let localDiagnostics=false,diagnosticAt=0,perfAt=0,renderAlpha=1,renderTime=0,pendingSave=null,spectatorDrag=null,spectatorShipId=null,autoFollow=true,autoFollowUntil=0;
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
 const fogCanvas=document.createElement('canvas');fogCanvas.width=fogCanvas.height=360;const fogContext=fogCanvas.getContext('2d',{alpha:false});
@@ -18,7 +18,7 @@ const stars=Array.from({length:4000},(_,i)=>({x:(i*7919)%WORLD.width,y:(i*3571)%
 function resize(){const rect=$('cabinet').getBoundingClientRect();w=canvas.width=Math.ceil(rect.width/1.6);h=canvas.height=Math.ceil(rect.height/1.6);ctx.imageSmoothingEnabled=false;const fit=Math.min(rect.width/320,rect.height/256);$('title-stage').style.setProperty('--title-scale',fit>=2?Math.floor(fit):fit);}
 new ResizeObserver(resize).observe($('cabinet'));resize();
 const baseZoom=()=>w<h?w/540:Math.min(w/820,h/510);
-function activeUI(show){for(const id of ['hud','pilot-hud','minimap','touch-controls'])$(id).hidden=!show;}
+function activeUI(show){for(const id of ['hud','pilot-hud','minimap','touch-controls','zoom-hint'])$(id).hidden=!show;}
 function resetInput(){keys.clear();mouse.fire=false;spectatorDrag=null;touch={x:0,y:0,fire:false};$('touch-pad').firstElementChild.style.transform='';}
 function soundInit(){const task=sfx.unlock();paintSound();return task.then(paintSound);}
 function signal(){sfx.signal();}
@@ -34,8 +34,8 @@ $('code').addEventListener('input',autoCode);$('code').addEventListener('change'
 async function launchTransition(){const screen=$('launch-transition');screen.hidden=true;void screen.offsetWidth;screen.hidden=false;$('opening').hidden=true;if(reducedMotion.matches){await new Promise(resolve=>setTimeout(resolve,500));}else{await new Promise(resolve=>setTimeout(resolve,1250));}screen.hidden=true;}
 async function start(){if(busy)return;busy=true;soundInit();$('start').disabled=true;$('again').disabled=true;try{
  const next=await arcade.start();let b;const saved=store.flight(next.id);if(saved&&!saved.result)b=Battle.restore(saved);else b=new Battle(next.seed);
- run=next;battle=b;motion.reset(b);frameMeter.reset();fogAt=-1;friendsAt=-1;contactSource=null;requestGeneration++;mode='launching';map=false;spectatorShipId=null;zoomFactor=1;camera={x:b.viewShip.x,y:b.viewShip.y-80};particles=[];effects=[];rewards=[];recoil=0;hitConfirm=0;killChain=0;lastKillAt=-99;acc=0;saveAt=0;resetInput();mouse.aim=null;
- $('ending').hidden=true;$('pause-screen').hidden=true;activeUI(false);signal();await launchTransition();mode='playing';activeUI(true);$('boundary').hidden=true;announce('',0);canvas.focus();syncHUD();
+ run=next;battle=b;motion.reset(b);frameMeter.reset();fogAt=-1;friendsAt=-1;contactSource=null;requestGeneration++;mode='launching';map=false;spectatorShipId=null;zoomFactor=.78;camera={x:b.viewShip.x,y:b.viewShip.y-80};particles=[];effects=[];rewards=[];recoil=0;hitConfirm=0;killChain=0;lastKillAt=-99;acc=0;saveAt=0;resetInput();mouse.aim=null;
+ $('ending').hidden=true;$('pause-screen').hidden=true;activeUI(false);zoom=baseZoom()*zoomFactor;draw();signal();await launchTransition();mode='playing';activeUI(true);$('zoom-hint').textContent=(matchMedia('(pointer:coarse)').matches||innerWidth<=600)?'PINCH TO ZOOM IN / OUT':'SCROLL OR + / − TO ZOOM';setTimeout(()=>{$('zoom-hint').hidden=true;},14000);$('boundary').hidden=true;announce('',0);canvas.focus();syncHUD();
  for(const a of b.admirals)if(a.pending)void requestOrders(a.side);
  }catch(e){status(e.message);$('result-note').textContent=e.message;}finally{busy=false;$('start').disabled=false;$('again').disabled=false;}}
 $('start').onclick=$('again').onclick=start;
@@ -57,13 +57,18 @@ function toggleMap(){if(!battle)return;if(battle.spectating){cycleSpectator();re
 const sectorZoom=()=>Math.min((w-36)/WORLD.width,(h-155)/WORLD.height);
 function freeSpectatorView(){if(battle?.spectating){if(map)zoomFactor=sectorZoom()/baseZoom();map=false;spectatorShipId=null;autoFollow=false;}}
 function panSpectator(x,y){camera.x=clamp(camera.x+x,0,WORLD.width);camera.y=clamp(camera.y+y,0,WORLD.height);}
-function changeZoom(factor){if(battle?.spectating)freeSpectatorView();else map=false;zoomFactor=clamp(zoomFactor*factor,battle?.spectating?Math.min(.45,sectorZoom()/baseZoom()):.45,2.1);}
+function changeZoom(factor){$('zoom-hint').hidden=true;if(battle?.spectating)freeSpectatorView();else map=false;zoomFactor=clamp(zoomFactor*factor,battle?.spectating?Math.min(.45,sectorZoom()/baseZoom()):.45,2.1);}
 $('minimap').onclick=toggleMap;
 window.addEventListener('keydown',e=>{if($('audio-credits').open||e.target?.matches?.('input'))return;if(mode==='playing'&&['Space','Tab','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(e.repeat){keys.add(e.code);return;}if(e.code==='Tab'&&mode==='playing'){toggleMap();return;}if(e.code==='Escape'||e.code==='KeyP'){pause(mode!=='paused');return;}if(e.code==='KeyM'){soundInit();mute();}if(mode==='playing'&&e.code==='Space')soundInit();if(e.code==='Enter'&&mode==='opening'&&!$('start').hidden)void start();if(e.code==='Equal')changeZoom(1.25);if(e.code==='Minus')changeZoom(1/1.25);keys.add(e.code);});
 window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>pause(true));document.addEventListener('visibilitychange',()=>{if(document.hidden){pause(true);sfx.update('paused');}});window.addEventListener('pagehide',save);
 canvas.onpointermove=e=>{const r=canvas.getBoundingClientRect();if(spectatorDrag?.id===e.pointerId&&battle?.spectating&&mode==='playing'){panSpectator((spectatorDrag.x-e.clientX)/r.width*w/zoom,(spectatorDrag.y-e.clientY)/r.height*h/zoom);spectatorDrag.x=e.clientX;spectatorDrag.y=e.clientY;return;}if(e.pointerType==='touch'||!battle?.player.alive||map)return;const p=entityScreen(battle.player);mouse.aim=Math.atan2((e.clientY-r.top)/r.height*h-p.y,(e.clientX-r.left)/r.width*w-p.x);};
 canvas.onpointerdown=e=>{if(battle?.spectating&&mode==='playing'&&e.button===0){e.preventDefault();freeSpectatorView();spectatorDrag={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);canvas.focus();return;}if(e.pointerType==='touch')return;soundInit();canvas.focus();if(e.button===0)mouse.fire=true;};
 window.addEventListener('pointerup',()=>{mouse.fire=false;spectatorDrag=null;});canvas.onpointercancel=canvas.onlostpointercapture=()=>{mouse.fire=false;spectatorDrag=null;};canvas.oncontextmenu=e=>e.preventDefault();canvas.onwheel=e=>{e.preventDefault();changeZoom(Math.exp(-e.deltaY*.001));};
+// Two-finger zoom on the battlefield; joystick and fire controls remain separate.
+let pinchDistance=0;
+canvas.addEventListener('touchstart',e=>{if(e.touches.length===2){e.preventDefault();pinchDistance=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);spectatorDrag=null;}},{passive:false});
+canvas.addEventListener('touchmove',e=>{if(e.touches.length===2){e.preventDefault();const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pinchDistance>0)changeZoom(d/pinchDistance);pinchDistance=d;}},{passive:false});
+canvas.addEventListener('touchend',()=>{pinchDistance=0;});canvas.addEventListener('touchcancel',()=>{pinchDistance=0;});
 const pad=$('touch-pad');let padId=null;function movePad(e){const r=pad.getBoundingClientRect(),x=(e.clientX-r.left-r.width/2)/(r.width*.35),y=(e.clientY-r.top-r.height/2)/(r.height*.35),l=Math.max(1,Math.hypot(x,y));touch.x=x/l;touch.y=y/l;pad.firstElementChild.style.transform=`translate(${touch.x*33}px,${touch.y*33}px)`;mouse.aim=null;}
 pad.onpointerdown=e=>{e.preventDefault();padId=e.pointerId;pad.setPointerCapture(padId);movePad(e);soundInit();};pad.onpointermove=e=>{if(e.pointerId===padId)movePad(e);};pad.onpointerup=pad.onpointercancel=()=>{padId=null;touch.x=touch.y=0;pad.firstElementChild.style.transform='';};
 for(const [id,key] of [['touch-fire','fire']]){$(id).onpointerdown=e=>{e.preventDefault();$(id).setPointerCapture(e.pointerId);touch[key]=true;soundInit();};$(id).onpointerup=$(id).onpointercancel=()=>{touch[key]=false;};}
@@ -304,6 +309,9 @@ function publicState(){return{mode,time:battle?.time??0,lives:battle?.lives??3,s
 arcade.init().then(({config})=>{paintEntry();paintMarks();if(config.localTest){localDiagnostics=true;window.__starfall={showAdmiralComment,state:publicState,get battle(){return battle;},get perf(){return perf;},get performance(){return frameMeter.report();},rendered(id){return {...pose(battle.ships[id])};},get audio(){return sfx.status();},get sound(){return sfx;},get camera(){return {...camera,zoom,viewWidth:w/zoom,viewHeight:h/zoom};},pause,draw,start,async advance(seconds){if(!battle)throw new Error('Start first');for(let i=0;i<seconds*30&&!battle.result;i++){motion.capture(battle);battle.step(FIXED_STEP,{});for(const a of battle.admirals)if(a.pending){const snap=battle.decisionSnapshot(a.side);battle.acceptOrders(snap,battle.fallback(snap),'fixture');}handleEvents();}renderAlpha=1;syncHUD();draw();}};}}).catch(()=>status('ARCADE CONNECTION UNAVAILABLE · Reload to reconnect.'));
 if(document.modelContext?.registerTool){try{document.modelContext.registerTool({name:'read_starfall_state',description:'Read the pilot’s current arcade state. Includes fleet survivor totals; enemy positions remain restricted to team vision.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute(args){if(!args||Object.keys(args).length)throw new Error('Expected empty input');return publicState();}});}catch{}}
 requestAnimationFrame(frame);
+
+// Reveal only the final-size, font-ready title; no miniature first frame.
+document.fonts.load('8px Arcade').catch(()=>{}).then(()=>{resize();drawTitle(performance.now());requestAnimationFrame(()=>{$('opening').classList.add('arcade-ready');});});
 
 if(document.modelContext?.registerTool){for(const tool of [
  {name:'start_free_flight',description:'Start or resume the free browser battle. No payment or tokens.',execute:async()=>{if(!['opening','ended'].includes(mode))throw new Error('Flight already active');await start();return publicState();}},
