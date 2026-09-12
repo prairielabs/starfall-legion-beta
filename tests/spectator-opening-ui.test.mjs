@@ -8,7 +8,8 @@ const style=await readFile(new URL('../dist/style.css',import.meta.url),'utf8');
 test('spectator cycle follows living friendly ships and returns to the map',()=>{
  assert.match(game,/function spectatorShips\(\)\{return battle\?battle\.living\(0\)\.sort/);
  assert.match(game,/if\(battle\.spectating\)\{cycleSpectator\(\);return;\}/);
- assert.match(game,/ship\.id===spectatorShipId&&ship\.alive&&ship\.side===0/);
+ assert.match(game,/ship\.id===spectatorShipId&&ship\.alive&&\(autoFollow\|\|ship\.side===0\)/);
+ assert.match(game,/function pickAutoFollow\(\)/);
  assert.match(game,/else\{spectatorShipId=null;map=true;\}/);
 });
 
