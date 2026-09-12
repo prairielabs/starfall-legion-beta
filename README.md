@@ -159,3 +159,5 @@ Launch reminds the pilot to stay with their squadron. Cavalry starts at the rear
 Background stars are plain, irregularly scattered white dots. Hosted play refreshes stale saved provider connections from the same activation code before any pulse debit; unsupported old cards require re-entry with a current OpenRouter code.
 
 Radio replies now hold for eight seconds and fade over 0.7 seconds. Initial commander calls are staggered at 30/45 seconds; later calls wait for the other reply to clear.
+
+Commander messages address their own units only. Desktop radio occupies the gaps between points and the blue score, and between the red score and audio controls. Only completed orders appear; no channel-opening announcement.
