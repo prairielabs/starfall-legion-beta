@@ -2,7 +2,7 @@
 
 Starfall Legion is a large-scale 16-bit browser space battle: one pilot inside
 two autonomous fleets, three lives, hundreds of ships, fighter dogfights,
-merchant convoys, artillery fortresses, rail fire, full battlefield visibility, squad recalls
+merchant convoys, artillery fortresses, rail fire, team sensor visibility, squad recalls
 and a spectator camera.
 
 The artillery cruiser now reads as a true capital ship: a broader textured
@@ -34,51 +34,26 @@ Then open [http://localhost:8080](http://localhost:8080).
 - `M`: mute
 - `P` or Escape: pause
 
-## Commander battles
+## Selected hackathon release — October 12, 2026
 
-Scouts are removed. The pilot starts cruising from the left-middle of its
-fighter swarm at the same 245-unit speed as the squadron. Finish locks apply
-only to damaged capital hulls. The arcade powers on at its final title size;
-the opening flight view is wider, with a scroll/keyboard or phone-pinch hint.
+This is the exact free-play asset set tested and published at
+https://starfalllegion.com/play/. The opening roster is 404 ships, 202 per side,
+with full-direction flight, the moving launch and following camera, scouts,
+three ten-ship cavalry wings per side, and team sensor visibility.
 
-The fleets now close toward the centre in about 55 seconds. Capital ships stay
-on their own side of the centre line; fighters and cavalry can cross to attack.
-Cavalry formations use their faster class speed. The hosted model edition shows
-a short radio comment when each admiral completes its orders.
+Both free admirals choose local orders. They first recall at 30 seconds;
+each reply is followed by a 15-second rear regroup and each side schedules
+its next request independently. There are no model-provider calls here.
 
-The hosted paid edition now pits **ChatGPT (GPT-5.6 Terra), blue**, against
-**Gemini (Gemini 3.8 Flash), red**. This public free edition continues to use
-local admirals, with no provider connection or code required. Squadron markers
-are compact green dots on the minimap and sector map.
+Artillery cannot produce additional fighters. Pending launch jobs in resumed
+saves are discarded while existing ships, wounds and progress remain intact.
+Pilot replacement transfers control to an existing fighter. Matches end when
+a command ship dies or at the five-minute limit; exhausted pilots spectate.
 
-Every battle is now a chess match between two admirals played out by 356
-ships. Each side has a command ship, a broad flagship with eight light mounts
-and a spinal cannon that fires three-round bursts, guarded by an elite escort
-of ten double-shot ships. The game ends the moment a command ship dies.
-
-The admirals never see individual ships. They see pieces on a 14 x 14 board
-(`dist/grid.js`, `dist/board.js`): fighter squadrons, scout pairs, artillery
-batteries, cavalry, merchant convoys and the command ships, each with its
-weighted remaining strength. Every 30 seconds plus the time the admiral takes
-to think, it sends each piece to a square within its reach; while it thinks,
-its fighters recall to their squadrons, batteries, convoys and escort ring.
-A piece finishing a broken enemy piece stays on the kill. In this free
-edition both admirals are local standing-orders players; the hosted beta at
-starfalllegion.com runs a language model on each side and shows their names on
-the scorebar.
-
-## Current beta behavior
-
-- The opening fighter engagement begins at roughly ten seconds.
-- Red edge arrows point toward nearby sensor-visible enemies outside the view;
-  brighter arrows mean more contacts in that direction.
-- Fighters retain formation-level objectives but select and retaliate against
-  opponents individually, producing distributed dogfights.
-- Recalls last while the admiral thinks, then regroup for 2.5 seconds on the squadron centre.
-- Green corner ticks and map dots identify the player's squadron; the pilot flies in a centre squadron.
-- Spectating uses an auto cam that rides with a ship in the action and hops every few seconds; Tab cycles by hand.
-- Three cavalry wings per side; the third holds the centre of the line.
-- When the pilot's lives are exhausted, the fight continues in spectator mode.
+The selected version retains mute/unmute, Tab map, zoom and pause controls.
+A volume slider and persistent zoom preference are not included in this version.
+The separately operated hosted edition retains its access system and Luna 6
+admirals; it does not publish those services or credentials in this repository.
 
 ## Project layout
 
@@ -120,7 +95,7 @@ public without publishing customer access or operational infrastructure.
 
 OpenRouter- and OpenAI-based experimenters are welcome to wire in their own
 fleet commanders. Start with [`AGENTS.md`](AGENTS.md): it documents the local
-decision seam, legal-order boundary, full-visibility contract, and the rule that API
+decision seam, legal-order boundary, sensor-limited visibility contract, and the rule that API
 keys and model calls must remain behind a server you control. The checked-in
 free adapter stays local and deterministic, so cloning this repository never
 spends tokens or contacts a model provider.
@@ -134,7 +109,7 @@ npm test
 ## Contributing
 
 Issues and pull requests are welcome. Please keep changes deterministic,
-preserve full battlefield visibility, and include a focused test for gameplay rule
+preserve team sensor visibility, and include a focused test for gameplay rule
 changes. Agent integrations should follow [`AGENTS.md`](AGENTS.md). Never add
 credentials, access codes, paid-session data, or proprietary service
 configuration.

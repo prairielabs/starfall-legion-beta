@@ -55,9 +55,9 @@ test('every kind of piece can move to a different square within one order cycle'
   assert.ok(reachableSquares('g7', kind).includes('g7'), 'holding is legal');
  }
  // The slow hulls are the binding case: two squares in a 30-second cycle; the command ship one.
- assert.equal(reach('artillery'), 5);
- assert.equal(reach('cargo'), 5);
- assert.equal(reach('command'), 5);
+ assert.equal(reach('artillery'), 4);
+ assert.equal(reach('cargo'), 4);
+ assert.equal(reach('command'), 4);
  assert.ok(reach('fighter') > reach('artillery'));
  assert.ok(reach('scout') > reach('fighter'));
  // Reach is derived from the live rules, not a hand-typed table.
@@ -72,28 +72,28 @@ test('the simulation spawns only kinds the board knows', () => {
  const battle = fresh();
  const spawned = new Set(battle.formations.filter(f=>f.count).map(f => f.kind));
  for (const kind of spawned) assert.ok(KINDS[kind], `board knows ${kind}`);
- assert.deepEqual([...spawned].sort(), ['artillery', 'cargo', 'cavalry', 'command', 'fighter']);
+ assert.deepEqual([...spawned].sort(), ['artillery', 'cargo', 'cavalry', 'command', 'fighter', 'scout']);
  assert.ok(KINDS.command && KINDS.escort);
  assert.ok(WEIGHTS.command > WEIGHTS.artillery && WEIGHTS.artillery > WEIGHTS.cavalry);
- assert.deepEqual([...new Set(battle.ships.map(s => s.kind))].sort(), ['artillery', 'cargo', 'cavalry', 'command', 'escort', 'fighter']);
+ assert.deepEqual([...new Set(battle.ships.map(s => s.kind))].sort(), ['artillery', 'cargo', 'cavalry', 'command', 'escort', 'fighter', 'scout']);
 });
 
-test('the full roster is on the board: 26 pieces covering all 356 ships', () => {
+test('the full roster is on the board: 34 pieces covering all 404 ships', () => {
  const battle = fresh();
  const all = pieces(battle);
- assert.equal(battle.ships.length, 356);
- assert.equal(all.length, 26);
+ assert.equal(battle.ships.length, 404);
+ assert.equal(all.length, 34);
  const count = kind => all.filter(p => p.kind === kind).length;
  assert.equal(count('fighter'), 8);
- assert.equal(count('scout'), 0);
+ assert.equal(count('scout'), 4);
  assert.equal(count('artillery'), 6);
- assert.equal(count('cavalry'), 2);
+ assert.equal(count('cavalry'), 6);
  assert.equal(count('cargo'), 8);
  assert.equal(count('command'), 2);
- assert.equal(all.filter(p => p.side === 0).length, 13);
- assert.equal(all.filter(p => p.side === 1).length, 13);
+ assert.equal(all.filter(p => p.side === 0).length, 17);
+ assert.equal(all.filter(p => p.side === 1).length, 17);
  const covered = new Set(all.flatMap(p => battle.members(p.id).map(s => s.id)));
- assert.equal(covered.size, 356);
+ assert.equal(covered.size, 404);
  assert.ok(battle.ships.every(s => covered.has(s.id)));
  // Exactly one piece carries the human pilot.
  assert.equal(all.filter(p => p.player).length, 1);
@@ -211,7 +211,7 @@ test('a move order says whether the square is within reach', () => {
 test('legal moves list only reachable squares for each piece', () => {
  const battle = fresh();
  const moves = legalMoves(battle, 0);
- assert.equal(moves.length, 13);
+ assert.equal(moves.length, 17);
  for (const move of moves) {
   assert.ok(move.squares.includes(move.at));
   // Fast pieces (scouts, cavalry) can cover the whole board; slow ones cannot.
@@ -238,23 +238,23 @@ test('the group follows its centre toward the ordered square', () => {
   `centre of gravity closed on the square: ${Math.round(startDistance)} -> ${Math.round(endDistance)}`);
 });
 
-test('both sides see the complete battlefield', () => {
+test('board reveals only enemies within team vision', () => {
  const battle = fresh();
  const view = boardView(battle, 0);
  assert.equal(view.version, 2);
  assert.equal(view.side, 0);
  assert.deepEqual(view.board, { files: 14, ranks: 14, square: 1000 });
- assert.equal(view.own.length, 13);
+ assert.equal(view.own.length, 17);
  assert.ok(view.own.every(p => p.side === 0));
  assert.ok(view.enemy.every(p => p.side === 1));
  const visible = new Set(battle.contacts[0]);
  for (const piece of view.enemy) {
   assert.ok(battle.members(piece.id).some(s => visible.has(s.id)));
  }
- assert.equal(view.enemy.length,13);
+ assert.ok(view.enemy.length < 17);
 });
 
-test('the rendered board shows all twenty-six pieces with the right case', () => {
+test('the rendered board shows all thirty-four pieces with the right case', () => {
  const battle = fresh();
  const text = render(battle);
  const lines = text.split('\n');
@@ -275,10 +275,10 @@ test('the rendered board shows all twenty-six pieces with the right case', () =>
  // Fogged render for blue omits enemy pieces out of contact.
  const fogged = render(battle, 0);
  const foggedLower = (fogged.split('\n').slice(1, 15).join('').match(/[fsacmk]/g) || []).length;
- assert.equal(foggedLower,lower);
+ assert.ok(foggedLower < lower);
  // The roster is one line per piece.
- assert.equal(roster(battle).length, 26);
- assert.equal(roster(battle, 1).length, 13);
+ assert.equal(roster(battle).length, 34);
+ assert.equal(roster(battle, 1).length, 17);
  assert.ok(roster(battle).some(line => line.includes('(pilot)')));
 });
 
@@ -290,5 +290,5 @@ test('a destroyed formation leaves the board', () => {
  assert.equal(centreOfGravity(battle, formation.id), null);
  assert.equal(pieceOf(battle, formation.id), null);
  assert.ok(!pieces(battle).some(p => p.id === formation.id));
- assert.equal(pieces(battle).length, 25);
+ assert.equal(pieces(battle).length, 33);
 });

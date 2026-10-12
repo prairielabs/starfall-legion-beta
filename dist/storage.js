@@ -1,4 +1,4 @@
-const BOARD='starfall-free-scores-v1',FLIGHT='starfall-free-flight-v15';
+const BOARD='starfall-free-scores-v1',FLIGHT='starfall-mid-hackathon-r80-20261008-free';
 export class Storage{
  constructor(storage){this.storage=storage;this.available=true;this.memory={};}
  read(key,fallback){try{const raw=this.storage.getItem(key);return raw?JSON.parse(raw):fallback;}catch{this.available=false;return this.memory[key]??fallback;}}
