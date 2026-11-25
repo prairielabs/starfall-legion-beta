@@ -142,3 +142,7 @@ Commander messages address their own units only. Desktop radio occupies the gaps
 Play the official model-powered beta at [starfalllegion.com](https://starfalllegion.com) with a beta code. The no-code live fallback is at [/lastresort/](https://starfalllegion.com/lastresort/). This repository remains the standalone free edition with local commanders.
 
 Music volume is slightly increased, with effects unchanged. Lobby music attempts to start on load and unlocks on the first click or keypress when required by the browser.
+
+## Fighter balance
+
+Manual bursts now fire three shots two ticks apart. The first deals 13 damage and the follow-ups deal 6.5 each. Fighters on both sides have 48 hull and recover shields after 3.5 seconds without a hit. Loading an older save preserves the fraction of hull each surviving fighter has left.

@@ -5,8 +5,8 @@ import {BOARD,squareOf,parseSquare,isSquare,centreOf,nearestReachable,squareDist
 export const WORLD=Object.freeze({width:14000,height:14000});
 const FIGHTER_SPEED=245;
 // cycle: each admiral's play clock between orders; thinkCeiling: the longest an admiral may think before standing orders.
-export const RULES=Object.freeze({lives:3,playerSpeed:FIGHTER_SPEED*1.1,acceleration:7,formationSpeed:FIGHTER_SPEED,cruiseSpeed:205,firstRecall:30,regroup:15,orderWindow:10,cycle:30,thinkCeiling:16,maxOrdersPerSide:10,recallCutoff:300,battleDuration:300,boltSpeed:960,boltRange:1800,shieldDelay:5,railFirst:30,railPeriod:30,railWarning:3,railActive:1,railWidth:44,railDamage:36,artilleryStandOff:700,artilleryAssaultAt:75,fightersPerExchange:0,rendezvousAt:70,launchSpacing:.45});
-export const TYPES=Object.freeze({fighter:{hp:54,speed:FIGHTER_SPEED,turn:8.8,radius:12,vision:1000,reload:.75,damage:12},scout:{hp:30,speed:430,turn:3.5,radius:14,vision:1900,reload:1.6,damage:8},cavalry:{hp:72,speed:365,turn:1.35,radius:17,vision:1150,reload:2.3,damage:16},artillery:{hp:1100,speed:160,turn:0,radius:76,vision:1450,reload:1.35,damage:2},cargo:{hp:460,speed:150,turn:1.4,radius:38,vision:900,reload:1.1,damage:6},command:{hp:3600,speed:140,turn:0,radius:74,vision:1500,reload:1,damage:22},escort:{hp:80,speed:330,turn:1.5,radius:17,vision:1150,reload:2.1,damage:14}});
+export const RULES=Object.freeze({lives:3,playerSpeed:FIGHTER_SPEED*1.1,acceleration:7,formationSpeed:FIGHTER_SPEED,cruiseSpeed:205,firstRecall:30,regroup:15,orderWindow:10,cycle:30,thinkCeiling:16,maxOrdersPerSide:10,recallCutoff:300,battleDuration:300,boltSpeed:960,boltRange:1800,shieldDelay:5,fighterShieldDelay:3.5,burstSpacing:2/30,railFirst:30,railPeriod:30,railWarning:3,railActive:1,railWidth:44,railDamage:36,artilleryStandOff:700,artilleryAssaultAt:75,fightersPerExchange:0,rendezvousAt:70,launchSpacing:.45});
+export const TYPES=Object.freeze({fighter:{hp:48,speed:FIGHTER_SPEED,turn:8.8,radius:12,vision:1000,reload:.75,damage:13},scout:{hp:30,speed:430,turn:3.5,radius:14,vision:1900,reload:1.6,damage:8},cavalry:{hp:72,speed:365,turn:1.35,radius:17,vision:1150,reload:2.3,damage:16},artillery:{hp:1100,speed:160,turn:0,radius:76,vision:1450,reload:1.35,damage:2},cargo:{hp:460,speed:150,turn:1.4,radius:38,vision:900,reload:1.1,damage:6},command:{hp:3600,speed:140,turn:0,radius:74,vision:1500,reload:1,damage:22},escort:{hp:80,speed:330,turn:1.5,radius:17,vision:1150,reload:2.1,damage:14}});
 // How much one ship of each type is worth in a piece's remaining strength. Swarm ships count once;
 // big single hulls count by significance scaled by remaining hull, so a burning command ship reads as weaker.
 export const WEIGHTS=Object.freeze({fighter:1,scout:1.5,cavalry:2,escort:3,cargo:4,artillery:10,command:30});
@@ -255,7 +255,7 @@ export class Battle{
  fire(s,a,{turret=null,damage=null,speed=RULES.boltSpeed,light=false,burstFollowup=false,heavy=false,cooldown=null}={}){
   if(!s.alive||this.result)return;const gun=turret||s;if(gun.cooldown>0&&!burstFollowup)return;
   if(!burstFollowup)gun.cooldown=cooldown??(turret?(turret.id===7?(turret.burst>0?.3:4.8):.95):TYPES[s.kind].reload);
-  if(s.player&&!this.autopilot&&!turret&&!burstFollowup){s.burstAt=this.time+.12;s.burstRemaining=2;}
+  if(s.player&&!this.autopilot&&!turret&&!burstFollowup){s.burstAt=this.time+RULES.burstSpacing;s.burstRemaining=2;}
   const p=turret?this.turretPoint(s,turret):{x:s.x+Math.cos(a)*20,y:s.y+Math.sin(a)*20};
   const ports=s.kind==='escort'&&!turret?[-9,9]:[0];
   for(const offset of ports)this.bolts.push({id:this.projectileSerial++,x:p.x-Math.sin(a)*offset,y:p.y+Math.cos(a)*offset,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,side:s.side,owner:s.id,player:s.player,heavy,damage:damage??TYPES[s.kind].damage,life:RULES.boltRange/speed,light,visualScale:burstFollowup?.72:1});
@@ -455,11 +455,11 @@ export class Battle{
   if(this.time>=RULES.rendezvousAt)this.beginCharge();
   this.launchReinforcements();
   this.railDamage=[];const grid=new Grid(this.ships);for(const f of this.formations)this.moveUnit(f,dt);
-  for(const s of this.ships){if(!s.alive)continue;s.cooldown-=dt;s.flash=Math.max(0,s.flash-dt);if(s.kind!=='artillery'&&s.kind!=='cargo'&&s.kind!=='command'&&this.time-s.lastHit>=5)s.shield=2;
+  for(const s of this.ships){if(!s.alive)continue;s.cooldown-=dt;s.flash=Math.max(0,s.flash-dt);if(s.kind!=='artillery'&&s.kind!=='cargo'&&s.kind!=='command'&&this.time-s.lastHit>=(s.kind==='fighter'?RULES.fighterShieldDelay:RULES.shieldDelay))s.shield=2;
    if(s.kind==='artillery'){this.artillery(s,dt,grid);continue;}
    if(s.kind==='command'){this.command(s,dt,grid);continue;}
    if(s.kind==='cargo'){this.cargo(s,dt,grid);continue;}
-   if(s.player&&!this.autopilot){if(input.x||input.y||input.fire||input.rocket)this.playerCruising=false;const x=clamp(input.x||0,-1,1),y=clamp(input.y||(this.playerCruising?-1:0),-1,1),len=Math.max(1,Math.hypot(x,y)),speed=this.playerCruising?FIGHTER_SPEED:RULES.playerSpeed,ease=1-Math.exp(-RULES.acceleration*dt);s.vx+=(x/len*speed-s.vx)*ease;s.vy+=(y/len*speed-s.vy)*ease;const aim=Number.isFinite(input.aim)?input.aim:-Math.PI/2,turn=TYPES[s.kind].turn*dt;s.a+=clamp(angleDelta(s.a,aim),-turn,turn);s.boosting=false;if(Number.isFinite(s.burstAt)&&this.time+1e-9>=s.burstAt){s.burstRemaining=Math.max(0,(s.burstRemaining??1)-1);s.burstAt=s.burstRemaining?this.time+.12:null;this.fire(s,s.a,{burstFollowup:true,damage:TYPES[s.kind].damage*.5});}if(input.fire)this.fire(s,s.a);}
+   if(s.player&&!this.autopilot){if(input.x||input.y||input.fire||input.rocket)this.playerCruising=false;const x=clamp(input.x||0,-1,1),y=clamp(input.y||(this.playerCruising?-1:0),-1,1),len=Math.max(1,Math.hypot(x,y)),speed=this.playerCruising?FIGHTER_SPEED:RULES.playerSpeed,ease=1-Math.exp(-RULES.acceleration*dt);s.vx+=(x/len*speed-s.vx)*ease;s.vy+=(y/len*speed-s.vy)*ease;const aim=Number.isFinite(input.aim)?input.aim:-Math.PI/2,turn=TYPES[s.kind].turn*dt;s.a+=clamp(angleDelta(s.a,aim),-turn,turn);s.boosting=false;if(Number.isFinite(s.burstAt)&&this.time+1e-9>=s.burstAt){s.burstRemaining=Math.max(0,(s.burstRemaining??1)-1);s.burstAt=s.burstRemaining?this.time+RULES.burstSpacing:null;this.fire(s,s.a,{burstFollowup:true,damage:TYPES[s.kind].damage*.5});}if(input.fire)this.fire(s,s.a);}
    else this.npc(s,dt,grid);
    s.x+=s.vx*dt;s.y+=s.vy*dt;
    if(s.player){if(s.x<0||s.x>WORLD.width||s.y<0||s.y>WORLD.height){s.outside+=dt;if(s.outside>=5)this.destroy(s,{boundary:true});}else s.outside=0;}
@@ -569,6 +569,15 @@ export class Battle{
   if(!Array.isArray(b.admirals)||b.admirals.length!==2)b.admirals=[0,1].map(side=>Battle.freshAdmiral(side,Math.max(RULES.firstRecall,b.time+8)));
   for(const f of b.formations){if(f.orderGoal===undefined)f.orderGoal=null;if(f.orderSquare===undefined)f.orderSquare=null;if(f.finishing===undefined)f.finishing=null;if(f.recall&&f.state==='regroup'&&!Number.isFinite(f.drainAt))f.drainAt=b.admirals?.[f.side]?.pending?Infinity:b.time+RULES.regroup;}
   b.addCommandShips();b.addCavalryReserve();for(const f of b.formations)if(!Number.isFinite(f.full))f.full=b.ships.filter(s=>s.formation===f.id).reduce((t,s)=>t+(WEIGHTS[s.kind]??1),0);
-  b.launchQueue=[];b.version=26;if(b.playerCruising===undefined)b.playerCruising=false;for(const s of b.ships)if(!Number.isFinite(s.x)||!Number.isFinite(s.y)||!Number.isFinite(s.hp)||!TYPES[s.kind])throw new Error('Invalid saved ship.');b.events=[];b.updateGroups();b.updateVision();return b;
+  b.launchQueue=[];b.version=26;if(b.playerCruising===undefined)b.playerCruising=false;
+  for(const s of b.ships){
+   if(!Number.isFinite(s.x)||!Number.isFinite(s.y)||!Number.isFinite(s.hp)||!TYPES[s.kind])throw new Error('Invalid saved ship.');
+   // Apply the fighter balance patch once, keeping each surviving ship's hull percentage.
+   if(s.kind==='fighter'&&s.maxHp!==TYPES.fighter.hp){
+    if(s.alive&&s.maxHp>0)s.hp=clamp(s.hp/s.maxHp,0,1)*TYPES.fighter.hp;
+    s.maxHp=TYPES.fighter.hp;
+   }
+  }
+  b.events=[];b.updateGroups();b.updateVision();return b;
  }
 }
